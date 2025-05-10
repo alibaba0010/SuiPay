@@ -150,7 +150,7 @@ export default function TransactionMonitoring() {
         const processedTransactions = userTransactions.map((tx) => ({
           ...tx,
           id: tx.transactionDigest,
-          token: "SUI",
+          token: tx.tokenType,
           type:
             tx.sender === walletAddress
               ? ("sent" as const)
@@ -168,7 +168,7 @@ export default function TransactionMonitoring() {
                 status: recipient.status,
                 timestamp: bulkTx.timestamp,
                 id: `${bulkTx.transactionDigest}-${recipient.address}`,
-                token: "SUI",
+                token: bulkTx.tokenType,
                 type: "sent" as const,
                 isBulk: true,
                 plainCode: recipient.plainCode,
@@ -189,7 +189,7 @@ export default function TransactionMonitoring() {
                   status: relevantRecipient.status,
                   timestamp: bulkTx.timestamp,
                   id: `${bulkTx.transactionDigest}-${walletAddress}`,
-                  token: "SUI",
+                  token: bulkTx.tokenType,
                   type: "received" as const,
                   isBulk: true,
                   plainCode: relevantRecipient.plainCode,
@@ -659,7 +659,7 @@ export default function TransactionMonitoring() {
                                 </div>
                               </TableCell>
                               <TableCell className="hidden md:table-cell">
-                                {tx.amount} SUI
+                                {tx.amount} {tx.token}
                               </TableCell>
                               <TableCell className="hidden md:table-cell text-gray-300">
                                 {format(new Date(tx.timestamp), "yyyy-MM-dd")}
@@ -834,7 +834,7 @@ export default function TransactionMonitoring() {
                                         : "Payment"}
                                     </div>
                                     <div className="text-gray-300 truncate">
-                                      {totalAmount} SUI
+                                      {totalAmount} {tx.token}
                                     </div>
                                   </div>
                                 </div>

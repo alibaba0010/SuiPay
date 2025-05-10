@@ -339,7 +339,7 @@ export default function PaymentCreation() {
           amount: Number(formData.amount),
           status: "active",
           verificationCode,
-          tokenType: "USDC",
+          tokenType: formData.tokenType as "SUI" | "USDC",
         });
 
         addNotification({
@@ -456,7 +456,7 @@ export default function PaymentCreation() {
           receiver: recipientAddress,
           amount: Number(formData.amount),
           status: "completed",
-          tokenType: "USDC",
+          tokenType: formData.tokenType as "SUI" | "USDC",
         });
         // Add notification for completed payment
         const senderDisplay =

@@ -18,7 +18,6 @@ import { motion } from "framer-motion";
 import { useWalletContext } from "@/lib/wallet-context";
 import { useContract } from "@/hooks/useContract";
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 
 import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import { useSuiPrice } from "@/hooks/useSuiPrice";
@@ -77,7 +76,13 @@ const getNextPaymentText = (date: Date): string => {
 export default function Dashboard() {
   const { currentNetwork } = useNetwork();
   const { walletAddress } = useWalletContext() || {};
-  const { getUserBalance, claimFunds, refundFunds } = useContract();
+  const {
+    getUserBalance,
+    claimFunds,
+    refundFunds,
+    refundUSDCFunds,
+    claimUSDCFunds,
+  } = useContract();
   const {
     getTransactionsByAddress,
     getBulkTransactionsByAddress,
@@ -123,7 +128,7 @@ export default function Dashboard() {
       const processedTransactions = userTransactions.map((tx) => ({
         ...tx,
         id: tx.transactionDigest,
-        token: "SUI",
+        token: tx.tokenType,
         type:
           tx.sender === walletAddress
             ? ("sent" as const)
@@ -141,7 +146,7 @@ export default function Dashboard() {
               status: recipient.status,
               timestamp: bulkTx.timestamp,
               id: `${bulkTx.transactionDigest}-${recipient.address}`,
-              token: "SUI",
+              token: bulkTx.tokenType,
               type: "sent" as const,
               isBulk: true,
               plainCode: recipient.plainCode,
@@ -162,7 +167,7 @@ export default function Dashboard() {
                 status: relevantRecipient.status,
                 timestamp: bulkTx.timestamp,
                 id: `${bulkTx.transactionDigest}-${walletAddress}`,
-                token: "SUI",
+                token: bulkTx.tokenType,
                 type: "received" as const,
                 isBulk: true,
                 plainCode: relevantRecipient.plainCode,
@@ -539,7 +544,7 @@ export default function Dashboard() {
                               : `To: ${transaction.receiver.slice(0, 6)}...${transaction.receiver.slice(-4)}`}
                           </div>
                           <div className="text-sm text-gray-400">
-                            {transaction.amount} SUI
+                            {transaction.amount} {transaction.token}
                           </div>
                         </div>
                       </div>
@@ -642,6 +647,8 @@ export default function Dashboard() {
         updateBulkTransactionStatus={updateBulkTransactionStatus}
         updateTransactionStatus={updateTransactionStatus}
         claimFunds={claimFunds}
+        claimUSDCFunds={claimUSDCFunds}
+        refundUSDCFunds={refundUSDCFunds}
         refundFunds={refundFunds}
         onSuccess={refreshTransactions}
       />

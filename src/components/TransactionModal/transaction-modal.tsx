@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
-import { is } from "date-fns/locale";
 
 interface Transaction {
   transactionDigest: string;
@@ -44,7 +43,10 @@ interface TransactionModalProps {
     receiverAddress: string
   ) => Promise<boolean>;
   claimFunds: (amount: number) => Promise<any>;
+  claimUSDCFunds: (amount: number) => Promise<any>;
   refundFunds: (amount: number) => Promise<any>;
+  refundUSDCFunds: (amount: number) => Promise<any>;
+
   verifyBulkTransaction: (
     digest: string,
     code: string,
@@ -76,6 +78,8 @@ export default function TransactionModal({
   updateTransactionStatus,
   onSuccess,
   refundFunds,
+  claimUSDCFunds,
+  refundUSDCFunds,
 }: TransactionModalProps) {
   const [verificationCode, setVerificationCode] = useState<string[]>(
     Array(6).fill("")
@@ -96,11 +100,14 @@ export default function TransactionModal({
 
   useEffect(() => {
     if (isOpen && transaction) {
+      // Reset all state when modal opens
       setVerificationCode(Array(6).fill(""));
       setVerificationError(false);
       setVerificationSuccess(false);
       setClaimError(false);
       setClaimSuccess(false);
+      setRefundError(false); // Add this line
+      setRefundSuccess(false); // Add this line
     }
   }, [isOpen, transaction]);
 
@@ -247,7 +254,11 @@ export default function TransactionModal({
     setClaimError(false);
 
     try {
-      const result = await claimFunds(transaction.amount);
+      const result =
+        transaction.token === "USDC"
+          ? await claimUSDCFunds(transaction.amount)
+          : await claimFunds(transaction.amount);
+
       if (result.success) {
         if (transaction.isBulk) {
           await updateBulkTransactionStatus(
@@ -320,7 +331,11 @@ export default function TransactionModal({
     setRefundError(false);
 
     try {
-      const result = await refundFunds(transaction.amount);
+      const result =
+        transaction.token === "USDC"
+          ? await refundUSDCFunds(transaction.amount)
+          : await refundFunds(transaction.amount);
+
       if (result.success) {
         if (transaction.isBulk) {
           await updateBulkTransactionStatus(
@@ -352,8 +367,19 @@ export default function TransactionModal({
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-      onClose();
+      handleClose();
     }
+  };
+
+  const handleClose = () => {
+    // Clear all error and success states
+    setVerificationError(false);
+    setVerificationSuccess(false);
+    setClaimError(false);
+    setClaimSuccess(false);
+    setRefundError(false);
+    setRefundSuccess(false);
+    onClose();
   };
 
   if (!isOpen || !transaction) return null;
@@ -380,7 +406,7 @@ export default function TransactionModal({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="h-8 w-8 rounded-full"
                   >
                     <X className="h-4 w-4" />
@@ -405,7 +431,9 @@ export default function TransactionModal({
 
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-gray-400">Amount</div>
-                  <div className="font-medium">{transaction.amount} SUI</div>
+                  <div className="font-medium">
+                    {transaction.amount} {transaction.token}
+                  </div>
                 </div>
 
                 {isSender && (

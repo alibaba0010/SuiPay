@@ -233,6 +233,7 @@ export function ScheduleList({
           amount: transaction.amount,
           status: "active",
           verificationCode,
+          tokenType: "SUI", // USDC
         });
         addNotification({
           type: "claim",
@@ -296,6 +297,7 @@ export function ScheduleList({
             status: "active",
           })),
           totalAmount: transaction.totalAmount ?? 0,
+          tokenType: "SUI", // USDC
         });
 
         // Prepare email payloads for recipients with valid emails

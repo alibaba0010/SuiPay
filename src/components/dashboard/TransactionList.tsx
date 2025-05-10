@@ -174,7 +174,9 @@ export function TransactionList({
               <StatusIcon status={transaction.status} />
             </div>
             <div>
-              <p className="font-medium text-white">{transaction.amount} SUI</p>
+              <p className="font-medium text-white">
+                {transaction.amount} {transaction.token}
+              </p>
               <p className="text-sm text-gray-400">
                 {transaction.receiver === walletAddress
                   ? `Received from ${transaction.sender.slice(0, 6)}...${transaction.sender.slice(-4)}`
