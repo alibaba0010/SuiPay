@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Payroll, Recipient } from "@/types/payroll";
-import { useUserProfile } from "@/hooks/useUserProfile";
+import { useContract } from "@/hooks/useContract";
 
 interface PayrollDetailsProps {
   payroll: Payroll;
@@ -25,11 +25,8 @@ interface PayrollDetailsProps {
 export function PayrollDetails({ payroll, onBack }: PayrollDetailsProps) {
   const [enrichedRecipients, setEnrichedRecipients] = useState<Recipient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const {
-    fetchUserByAddress,
-    userProfile,
-    isLoading: isGetting,
-  } = useUserProfile();
+
+  const { getUserByAddress } = useContract();
 
   // Calculate total amount from recipients if not already provided
   const totalAmount =
@@ -40,36 +37,33 @@ export function PayrollDetails({ payroll, onBack }: PayrollDetailsProps) {
           0
         )
       : 0);
+  const fetchUserDetails = useCallback(async () => {
+    if (!payroll.recipients) return;
+
+    try {
+      const enrichedData = await Promise.all(
+        payroll.recipients.map(async (recipient) => {
+          if (!recipient.address) return recipient;
+          const userInfo = await getUserByAddress(recipient.address);
+          return {
+            ...recipient,
+            username: userInfo?.username || recipient.username || "N/A",
+            email: userInfo?.email || recipient.email || "N/A",
+          };
+        })
+      );
+
+      setEnrichedRecipients(enrichedData);
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [payroll.recipients, getUserByAddress]);
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (!payroll.recipients) return;
-
-      try {
-        const enrichedData = await Promise.all(
-          payroll.recipients.map(async (recipient) => {
-            if (!recipient.address) return recipient;
-            if (!userProfile && !isGetting) {
-              fetchUserByAddress(recipient.address);
-            }
-            return {
-              ...recipient,
-              username: userProfile?.username || recipient.username || "N/A",
-              email: userProfile?.email || recipient.email || "N/A",
-            };
-          })
-        );
-
-        setEnrichedRecipients(enrichedData);
-      } catch (error) {
-        console.error("Error fetching user details:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchUserDetails();
-  }, [payroll.recipients, userProfile, isGetting, fetchUserByAddress]);
+  }, [fetchUserDetails]);
 
   return (
     <Card className="bg-[#0a1930] border-[#1a2a40] text-white">
@@ -96,7 +90,7 @@ export function PayrollDetails({ payroll, onBack }: PayrollDetailsProps) {
           <div className="bg-[#061020] p-4 rounded-lg border border-[#1a2a40]">
             <div className="text-gray-400 text-sm mb-1">Total Amount</div>
             <div className="text-xl font-bold">
-              {totalAmount.toFixed(2)} SUI
+              {totalAmount.toFixed(2)} {payroll.tokenType}
             </div>
           </div>
           <div className="bg-[#061020] p-4 rounded-lg border border-[#1a2a40]">
@@ -154,7 +148,7 @@ export function PayrollDetails({ payroll, onBack }: PayrollDetailsProps) {
                       </TableCell>
                       <TableCell className="text-right">
                         {recipient.amount
-                          ? `${recipient.amount.toFixed(2)} SUI`
+                          ? `${recipient.amount.toFixed(2)} ${payroll.tokenType}`
                           : "0.00 SUI"}
                       </TableCell>
                     </TableRow>

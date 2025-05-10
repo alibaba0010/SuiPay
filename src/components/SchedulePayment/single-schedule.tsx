@@ -113,7 +113,7 @@ export default function SinglePayment() {
     const fetchBalance = async () => {
       if (walletAddress) {
         try {
-          const { suiBalance: balance, usdBalance } =
+          const { suiBalance: balance, usdcBalance } =
             await getUserBalance(walletAddress);
           const formatted = Number(balance) / 1_000_000_000;
           setUserBalance(formatted);
@@ -387,6 +387,7 @@ export default function SinglePayment() {
           receiver: recipientAddress,
           amount: Number(formData.amount),
           scheduledDate: scheduledDateTime,
+          tokenType: "SUI" as "SUI" | "USDC", //USDC
         };
         await scheduleTransaction("single", transactionData);
         toast({

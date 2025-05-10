@@ -49,13 +49,13 @@ import { Payroll } from "@/types/payroll";
 export function PayrollList() {
   const { walletAddress } = useWalletContext() || {};
   const {
-    payrolls,
     loading,
     getPayrolls,
     deletePayroll,
     createPayroll: storePayroll,
   } = usePayroll();
   const [searchQuery, setSearchQuery] = useState("");
+  const [payrolls, setPayroll] = useState<Array<Payroll>>([]);
   const [selectedPayroll, setSelectedPayroll] = useState("all");
   const [filteredPayrolls, setFilteredPayrolls] = useState<Array<Payroll>>([]);
   const [viewMode, setViewMode] = useState<"list" | "details" | "edit">("list");
@@ -63,11 +63,22 @@ export function PayrollList() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const fetchPayrolls = async () => {
+      if (walletAddress) {
+        const payrolls = await getPayrolls(walletAddress);
+        if (payrolls) {
+          setPayroll(payrolls);
+          setFilteredPayrolls(payrolls);
+        }
+      }
+    };
+
+    fetchPayrolls();
+  }, [walletAddress, getPayrolls]);
   // Filter payrolls based on search query and selected payroll
   useEffect(() => {
-    if (!payrolls) return;
-
-    let filtered = [...payrolls];
+    let filtered = payrolls || []; // Ensure we have an array to work with
 
     // Filter by search query
     if (searchQuery) {
@@ -85,6 +96,7 @@ export function PayrollList() {
   }, [payrolls, searchQuery, selectedPayroll]);
 
   const handleViewDetails = (payroll: Payroll) => {
+    console.log("Selected payroll:", payroll);
     setActivePayroll(payroll);
     setViewMode("details");
   };

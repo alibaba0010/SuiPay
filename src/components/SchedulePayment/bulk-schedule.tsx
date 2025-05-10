@@ -603,7 +603,7 @@ export default function BulkPayment() {
       const totalAmount = recipients.reduce((sum, r) => sum + r.amount, 0);
 
       // Check balance
-      const { suiBalance: balance, usdBalance } =
+      const { suiBalance: balance, usdcBalance } =
         await getUserBalance(walletAddress);
       if (totalAmount > Number(balance)) {
         toast({
