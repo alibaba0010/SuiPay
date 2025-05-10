@@ -31,6 +31,10 @@ const PayrollSchema = new Schema(
       required: true,
       min: 0,
     },
+    tokenType: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: {

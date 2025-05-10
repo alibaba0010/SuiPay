@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       name: body.name,
       ownerAddress: body.ownerAddress,
       recipients: body.recipients,
+      tokenType: body.tokenType,
       totalAmount: body.recipients.reduce(
         (sum: number, recipient: any) => sum + recipient.amount,
         0

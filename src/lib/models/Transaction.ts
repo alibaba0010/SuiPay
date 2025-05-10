@@ -29,6 +29,10 @@ const TransactionSchema = new mongoose.Schema({
   plainCode: {
     type: String,
   },
+  tokenType: {
+    type: String,
+    required: true,
+  },
   timestamp: {
     type: Date,
     default: Date.now,

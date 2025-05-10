@@ -17,6 +17,10 @@ const SingleScheduleSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  tokenType: {
+    type: String,
+    required: true,
+  },
   scheduledDate: {
     type: Date,
     required: true,

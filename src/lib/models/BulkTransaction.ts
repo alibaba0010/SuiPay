@@ -62,6 +62,10 @@ const BulkTransactionSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  tokenType: {
+    type: String,
+    required: true
+  },
   timestamp: {
     type: Date,
     default: Date.now,

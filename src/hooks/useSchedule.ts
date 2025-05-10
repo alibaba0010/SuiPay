@@ -8,6 +8,7 @@ export interface SingleTransactionData {
   receiver: string;
   amount: number;
   scheduledDate: Date;
+  tokenType: "SUI" | "USDC";
 }
 
 export interface BulkTransactionData {

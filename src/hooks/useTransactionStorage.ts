@@ -17,6 +17,7 @@ export interface Transaction {
   token?: string;
   type?: "sent" | "received";
   isBulk?: boolean;
+  tokenType: "SUI" | "USDC";
 }
 
 interface Recipient {
@@ -39,6 +40,7 @@ interface BulkTransaction {
   totalAmount: number;
   timestamp: Date;
   updatedDigests?: UpdatedDigestMapping[];
+  tokenType: "SUI" | "USDC";
 }
 
 interface TransactionStore {

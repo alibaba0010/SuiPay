@@ -30,6 +30,10 @@ const BulkScheduleSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  tokenType: {
+    type: String,
+    required: true,
+  },
   timestamp: {
     type: Date,
     default: Date.now,

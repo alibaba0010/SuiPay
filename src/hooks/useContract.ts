@@ -355,10 +355,9 @@ export function useContract() {
 
       // Use init_transfer instead of send_funds_directly
       tx.moveCall({
-        target: `${secureTokenPackageId}::${MODULE_NAME}::send_funds_directly`,
+        target: `${secureTokenPackageId}::${MODULE_NAME}::send_funds_directly_sui`,
         arguments: [tx.object(tokenObjectId), tx.pure.address(recipient), coin],
       });
-      console.log(tx);
       const result = await executeTransaction(tx, {
         successMessage: "Token sent successfully!",
         errorMessage: "Error in sending token user. Please try again.",
@@ -394,11 +393,9 @@ export function useContract() {
 
       // 1. Split the required amount from sender's coin
       const [coin] = tx.splitCoins(tx.gas, [tx.pure("u64", amount)]);
-      console.log("GAS BUDJET: ", GAS_BUDGET);
-      console.log(typeof GAS_BUDGET);
       tx.setGasBudget(GAS_BUDGET); // Increased to 30M gas units
       tx.moveCall({
-        target: `${secureTokenPackageId}::${MODULE_NAME}::init_transfer`,
+        target: `${secureTokenPackageId}::${MODULE_NAME}::init_transfer_sui`,
         arguments: [tx.object(tokenObjectId), coin, tx.pure.address(recipient)],
       });
 
@@ -462,7 +459,7 @@ export function useContract() {
 
       // Call send_bulk_funds_directly
       tx.moveCall({
-        target: `${secureTokenPackageId}::${MODULE_NAME}::send_bulk_funds_directly`,
+        target: `${secureTokenPackageId}::${MODULE_NAME}::send_bulk_funds_directly_sui`,
         arguments: [
           tx.object(tokenObjectId),
           tx.pure.vector("address", recipients),
@@ -513,7 +510,7 @@ export function useContract() {
       tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
-        target: `${secureTokenPackageId}::${MODULE_NAME}::claim_funds`,
+        target: `${secureTokenPackageId}::${MODULE_NAME}::claim_funds_sui`,
         arguments: [tx.object(tokenObjectId), coin],
       });
 
@@ -574,7 +571,7 @@ export function useContract() {
 
       // Call send_bulk_funds_directly
       tx.moveCall({
-        target: `${secureTokenPackageId}::${MODULE_NAME}::init_bulk_transfer`,
+        target: `${secureTokenPackageId}::${MODULE_NAME}::init_bulk_transfer_sui`,
         arguments: [
           tx.object(tokenObjectId),
           tx.pure.vector("address", recipients),
@@ -625,7 +622,7 @@ export function useContract() {
       tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
-        target: `${secureTokenPackageId}::${MODULE_NAME}::refund_funds`,
+        target: `${secureTokenPackageId}::${MODULE_NAME}::refund_funds_sui`,
         arguments: [tx.object(tokenObjectId), coin],
       });
 
@@ -686,7 +683,7 @@ export function useContract() {
       }
 
       tx.moveCall({
-        target: `${secureTokenPackageId}::${MODULE_NAME}::create_payroll`,
+        target: `${secureTokenPackageId}::${MODULE_NAME}::create_payroll_sui`,
         arguments: [
           tx.object(tokenObjectId),
           tx.pure.string(name),
@@ -722,6 +719,412 @@ export function useContract() {
     }
   };
 
+  const sendUSDCPaymentDirectly = async (recipient: string, amount: number) => {
+    if (!tokenObjectId || !walletAddress) {
+      throw new Error("Token object ID or wallet not connected");
+    }
+
+    try {
+      const tx = new Transaction();
+
+      // Get user's USDC coins
+      const userCoins = await suiClient.getCoins({
+        owner: walletAddress,
+        coinType:
+          "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+      });
+
+      if (!userCoins.data.length) {
+        throw new Error("No USDC coins available");
+      }
+
+      // Use first available coin
+      const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
+        tx.pure("u64", amount),
+      ]);
+
+      tx.setGasBudget(GAS_BUDGET);
+
+      tx.moveCall({
+        target: `${secureTokenPackageId}::${MODULE_NAME}::send_funds_directly_usdc`,
+        arguments: [tx.object(tokenObjectId), tx.pure.address(recipient), coin],
+      });
+
+      const result = await executeTransaction(tx, {
+        successMessage: "USDC sent successfully!",
+        errorMessage: "Error sending USDC. Please try again.",
+        loadingMessage: "Sending USDC...",
+      });
+
+      return {
+        success: true,
+        data: {
+          transactionId: result,
+          recipient,
+          amount,
+          timestamp: Date.now(),
+        },
+      };
+    } catch (error) {
+      console.error("Error in sendUSDCPaymentDirectly:", error);
+      throw error;
+    }
+  };
+
+  const sendUSDCPayment = async (recipient: string, amount: number) => {
+    if (!tokenObjectId || !walletAddress) {
+      throw new Error("Token object ID or wallet not connected");
+    }
+
+    try {
+      const tx = new Transaction();
+
+      const userCoins = await suiClient.getCoins({
+        owner: walletAddress,
+        coinType:
+          "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+      });
+
+      if (!userCoins.data.length) {
+        throw new Error("No USDC coins available");
+      }
+
+      const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
+        tx.pure("u64", amount),
+      ]);
+
+      tx.setGasBudget(GAS_BUDGET);
+
+      tx.moveCall({
+        target: `${secureTokenPackageId}::${MODULE_NAME}::init_transfer_usdc`,
+        arguments: [tx.object(tokenObjectId), coin, tx.pure.address(recipient)],
+      });
+
+      const result = await executeTransaction(tx, {
+        successMessage: "USDC payment initiated successfully!",
+        errorMessage: "Error initiating USDC payment. Please try again.",
+        loadingMessage: "Initiating USDC payment...",
+      });
+
+      return {
+        success: true,
+        data: {
+          transactionId: result,
+          recipient,
+          amount,
+          timestamp: Date.now(),
+        },
+      };
+    } catch (error) {
+      console.error("Error in sendUSDCPayment:", error);
+      throw error;
+    }
+  };
+
+  const claimUSDCFunds = async (amount: number) => {
+    if (!tokenObjectId || !walletAddress) {
+      throw new Error("Token object ID or wallet not connected");
+    }
+
+    try {
+      const tx = new Transaction();
+      const amountInMist = BigInt(Math.round(amount * 1_000_000));
+
+      const userCoins = await suiClient.getCoins({
+        owner: walletAddress,
+        coinType:
+          "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+      });
+
+      if (!userCoins.data.length) {
+        throw new Error("No USDC coins available");
+      }
+
+      const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
+        tx.pure("u64", amountInMist),
+      ]);
+
+      tx.setGasBudget(GAS_BUDGET);
+
+      tx.moveCall({
+        target: `${secureTokenPackageId}::${MODULE_NAME}::claim_funds_usdc`,
+        arguments: [tx.object(tokenObjectId), coin],
+      });
+
+      const result = await executeTransaction(tx, {
+        successMessage: "USDC funds claimed successfully!",
+        errorMessage: "Error claiming USDC funds. Please try again.",
+        loadingMessage: "Claiming USDC funds...",
+      });
+
+      return {
+        success: true,
+        data: {
+          transactionId: result,
+          amount,
+          timestamp: Date.now(),
+        },
+      };
+    } catch (error) {
+      console.error("Error in claimUSDCFunds:", error);
+      throw error;
+    }
+  };
+
+  const sendBulkUSDCPayment = async (
+    recipients: string[],
+    amounts: number[],
+    totalAmount: number
+  ) => {
+    if (!tokenObjectId || !walletAddress) {
+      throw new Error("Token object ID or wallet not connected");
+    }
+
+    try {
+      const tx = new Transaction();
+      const amountsInMist = amounts.map((amount) =>
+        BigInt(Math.round(amount * 1_000_000))
+      );
+
+      const totalAmountInMist = BigInt(Math.round(totalAmount * 1_000_000));
+
+      const userCoins = await suiClient.getCoins({
+        owner: walletAddress,
+        coinType:
+          "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+      });
+
+      if (!userCoins.data.length) {
+        throw new Error("No USDC coins available");
+      }
+
+      const sumOfAmounts = amountsInMist.reduce((a, b) => a + b, BigInt(0));
+      if (sumOfAmounts !== totalAmountInMist) {
+        throw new Error(
+          "Total amount does not match sum of individual amounts"
+        );
+      }
+
+      const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
+        tx.pure("u64", totalAmountInMist),
+      ]);
+
+      tx.setGasBudget(GAS_BUDGET);
+
+      tx.moveCall({
+        target: `${secureTokenPackageId}::${MODULE_NAME}::send_bulk_funds_directly_usdc`,
+        arguments: [
+          tx.object(tokenObjectId),
+          tx.pure.vector("address", recipients),
+          tx.pure.vector("u64", amountsInMist),
+          coin,
+        ],
+      });
+
+      const result = await executeTransaction(tx, {
+        successMessage: "Bulk USDC transfer completed successfully!",
+        errorMessage: "Failed to complete bulk USDC transfer",
+        loadingMessage: "Processing bulk USDC transfer...",
+      });
+
+      return {
+        success: true,
+        data: {
+          transactionId: result,
+          recipients,
+          amounts,
+          totalAmount,
+          timestamp: Date.now(),
+        },
+      };
+    } catch (error) {
+      console.error("Error in sendBulkUSDCPayment:", error);
+      throw error;
+    }
+  };
+
+  const sendSecureBulkUSDCPayment = async (
+    recipients: string[],
+    amounts: number[],
+    totalAmount: number
+  ) => {
+    if (!tokenObjectId || !walletAddress) {
+      throw new Error("Token object ID or wallet not connected");
+    }
+
+    try {
+      const tx = new Transaction();
+      const amountsInMist = amounts.map((amount) =>
+        BigInt(Math.round(amount * 1_000_000))
+      );
+
+      const totalAmountInMist = BigInt(Math.round(totalAmount * 1_000_000));
+
+      const userCoins = await suiClient.getCoins({
+        owner: walletAddress,
+        coinType:
+          "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+      });
+
+      if (!userCoins.data.length) {
+        throw new Error("No USDC coins available");
+      }
+
+      const sumOfAmounts = amountsInMist.reduce((a, b) => a + b, BigInt(0));
+      if (sumOfAmounts !== totalAmountInMist) {
+        throw new Error(
+          "Total amount does not match sum of individual amounts"
+        );
+      }
+
+      const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
+        tx.pure("u64", totalAmountInMist),
+      ]);
+
+      tx.setGasBudget(GAS_BUDGET);
+
+      tx.moveCall({
+        target: `${secureTokenPackageId}::${MODULE_NAME}::init_bulk_transfer_usdc`,
+        arguments: [
+          tx.object(tokenObjectId),
+          tx.pure.vector("address", recipients),
+          tx.pure.vector("u64", amountsInMist),
+          coin,
+        ],
+      });
+
+      const result = await executeTransaction(tx, {
+        successMessage: "Secure bulk USDC transfer initiated successfully!",
+        errorMessage: "Failed to initiate secure bulk USDC transfer",
+        loadingMessage: "Processing secure bulk USDC transfer...",
+      });
+
+      return {
+        success: true,
+        data: {
+          transactionId: result,
+          recipients,
+          amounts,
+          totalAmount,
+          timestamp: Date.now(),
+        },
+      };
+    } catch (error) {
+      console.error("Error in sendSecureBulkUSDCPayment:", error);
+      throw error;
+    }
+  };
+
+  const refundUSDCFunds = async (amount: number) => {
+    if (!tokenObjectId || !walletAddress) {
+      throw new Error("Token object ID or wallet not connected");
+    }
+
+    try {
+      const tx = new Transaction();
+      const amountInMist = BigInt(Math.round(amount * 1_000_000));
+
+      const userCoins = await suiClient.getCoins({
+        owner: walletAddress,
+        coinType:
+          "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+      });
+
+      if (!userCoins.data.length) {
+        throw new Error("No USDC coins available");
+      }
+
+      const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
+        tx.pure("u64", amountInMist),
+      ]);
+
+      tx.setGasBudget(GAS_BUDGET);
+
+      tx.moveCall({
+        target: `${secureTokenPackageId}::${MODULE_NAME}::refund_funds_usdc`,
+        arguments: [tx.object(tokenObjectId), coin],
+      });
+
+      const result = await executeTransaction(tx, {
+        successMessage: "USDC funds refunded successfully!",
+        errorMessage: "Error refunding USDC funds. Please try again.",
+        loadingMessage: "Refunding USDC funds...",
+      });
+
+      return {
+        success: true,
+        data: {
+          transactionId: result,
+          amount,
+          timestamp: Date.now(),
+        },
+      };
+    } catch (error) {
+      console.error("Error in refundUSDCFunds:", error);
+      throw error;
+    }
+  };
+
+  const createUSDCPayroll = async (
+    name: string,
+    recipients: string[],
+    amounts: number[],
+    totalAmount: number
+  ) => {
+    if (!tokenObjectId || !walletAddress) {
+      throw new Error("Token object ID or wallet not connected");
+    }
+
+    try {
+      const tx = new Transaction();
+      const amountsInMist = amounts.map((amount) =>
+        BigInt(Math.round(amount * 1_000_000))
+      );
+
+      const totalAmountInMist = BigInt(Math.round(totalAmount * 1_000_000));
+
+      const sumOfAmounts = amountsInMist.reduce((a, b) => a + b, BigInt(0));
+      if (sumOfAmounts !== totalAmountInMist) {
+        throw new Error(
+          "Total amount does not match sum of individual amounts"
+        );
+      }
+
+      tx.setGasBudget(GAS_BUDGET);
+
+      tx.moveCall({
+        target: `${secureTokenPackageId}::${MODULE_NAME}::create_payroll_usdc`,
+        arguments: [
+          tx.object(tokenObjectId),
+          tx.pure.string(name),
+          tx.pure.vector("address", recipients),
+          tx.pure.vector("u64", amountsInMist),
+        ],
+      });
+
+      const result = await executeTransaction(tx, {
+        successMessage: "USDC payroll created successfully!",
+        errorMessage: "Failed to create USDC payroll",
+        loadingMessage: "Creating USDC payroll...",
+      });
+
+      return {
+        success: true,
+        data: {
+          transactionId: result,
+          name,
+          recipients,
+          amounts,
+          totalAmount,
+          timestamp: Date.now(),
+        },
+      };
+    } catch (error) {
+      console.error("Error in createUSDCPayroll:", error);
+      throw error;
+    }
+  };
+
   return {
     createUser,
     getUserByAddress,
@@ -737,5 +1140,12 @@ export function useContract() {
     sendSecureBulkPayment,
     refundFunds,
     createPayroll,
+    sendUSDCPayment,
+    sendUSDCPaymentDirectly,
+    claimUSDCFunds,
+    sendBulkUSDCPayment,
+    sendSecureBulkUSDCPayment,
+    refundUSDCFunds,
+    createUSDCPayroll,
   };
 }

@@ -453,6 +453,7 @@ export default function AddNewPayroll() {
               address: r.address,
               amount: Number(r.amount),
             })),
+            tokenType: "SUI", // | "USDC"
           });
 
           toast({

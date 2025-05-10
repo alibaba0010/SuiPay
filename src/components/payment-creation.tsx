@@ -50,20 +50,25 @@ import { useRouter } from "next/navigation";
 import { formatBalance, generateVerificationCode } from "@/utils/helpers";
 import { sendPaymentEmail } from "@/hooks/UseEmail";
 import { useNotifications } from "@/contexts/notifications-context";
-import { get } from "http";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface FormData {
   recipient: string;
   recipientType: "walletAddress" | "email" | "username";
   amount: string;
-  token: string;
+  tokenType: string;
   memo: string;
   senderEmail: string;
 }
 
 export default function PaymentCreation() {
-  const { sendPayment, sendPaymentDirectly, getUserBalance } = useContract();
+  const {
+    sendPayment,
+    sendPaymentDirectly,
+    getUserBalance,
+    sendUSDCPayment,
+    sendUSDCPaymentDirectly,
+  } = useContract();
   const { addTransaction } = useTransactionStorage();
   const suiPrice = useSuiPrice();
   const { addNotification } = useNotifications();
@@ -74,7 +79,7 @@ export default function PaymentCreation() {
     recipient: "",
     recipientType: "walletAddress",
     amount: "",
-    token: "SUI",
+    tokenType: "SUI",
     memo: "",
     senderEmail: "",
   });
@@ -284,12 +289,16 @@ export default function PaymentCreation() {
       return;
     }
 
-    // Add balance validation
-    if (Number(formData.amount) > suiBalance) {
+    // Add balance validation based on token type
+    const selectedAmount = Number(formData.amount);
+    const relevantBalance =
+      formData.tokenType === "USDC" ? usdcBalance : suiBalance;
+
+    if (selectedAmount > relevantBalance) {
       toast({
         variant: "destructive",
         title: "Insufficient balance",
-        description: `You need ${formData.amount} SUI but only have ${suiBalance.toFixed(2)} SUI`,
+        description: `You need ${formData.amount} ${formData.tokenType.toUpperCase()} but only have ${relevantBalance.toFixed(2)} ${formData.tokenType.toUpperCase()}`,
       });
       return;
     }
@@ -298,7 +307,6 @@ export default function PaymentCreation() {
 
     try {
       // Convert amount to number and handle decimals
-      const amount = Math.round(Number.parseFloat(formData.amount) * 1e9); // Convert to base units (1 SUI = 1e9 base units)
 
       // Get the recipient's wallet address - ensure we're using the wallet address directly
       const recipientAddress =
@@ -306,15 +314,24 @@ export default function PaymentCreation() {
           ? recipientInfo.walletAddress
           : formData.recipient;
       const recipientEmail = recipientInfo ? recipientInfo.email : "";
-
-      // Send the payment and get the transaction digest
-      const result = await sendPayment(recipientAddress, Number(amount));
+      // Convert amount based on token type
+      const amount = Math.round(
+        Number.parseFloat(formData.amount) *
+          (formData.tokenType === "USDC" ? 1e6 : 1e9)
+      ); // Convert to base units (USDC = 1e6, SUI = 1e9)
+      // Send the payment and get the transaction digest based on token type
+      let result;
+      if (formData.tokenType === "USDC") {
+        result = await sendUSDCPayment(recipientAddress, Number(amount));
+      } else {
+        result = await sendPayment(recipientAddress, Number(amount));
+      }
 
       if (result) {
         // Generate a 6-character alphanumeric verification code
         const verificationCode = generateVerificationCode();
 
-        // Store the transaction
+        // Store the transaction with tokenType
         await addTransaction({
           transactionDigest: result.data.transactionId as string,
           sender: walletAddress as string,
@@ -322,12 +339,13 @@ export default function PaymentCreation() {
           amount: Number(formData.amount),
           status: "active",
           verificationCode,
+          tokenType: "USDC",
         });
 
         addNotification({
           type: "claim",
           title: "Payment Available to Claim",
-          description: `${senderUsername} sent you ${formData.amount} SUI.`,
+          description: `${senderUsername} sent you ${formData.amount} ${formData.tokenType.toUpperCase()}.`,
           priority: "high",
           transactionId: result.data.transactionId as string,
         });
@@ -339,7 +357,7 @@ export default function PaymentCreation() {
               recipientEmail,
               senderEmail,
               amount: formData.amount,
-              token: formData.token,
+              token: formData.tokenType.toUpperCase(),
               verificationCode,
             });
 
@@ -391,11 +409,28 @@ export default function PaymentCreation() {
       return;
     }
 
+    // Add balance validation based on token type
+    const selectedAmount = Number(formData.amount);
+    const relevantBalance =
+      formData.tokenType === "USDC" ? usdcBalance : suiBalance;
+
+    if (selectedAmount > relevantBalance) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient balance",
+        description: `You need ${formData.amount} ${formData.tokenType.toUpperCase()} but only have ${relevantBalance.toFixed(2)} ${formData.tokenType.toUpperCase()}`,
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
       // Convert amount to number and handle decimals
-      const amount = Math.round(Number.parseFloat(formData.amount) * 1e9); // Convert to base units (1 SUI = 1e9 base units)
+      const amount = Math.round(
+        Number.parseFloat(formData.amount) *
+          (formData.tokenType === "USDC" ? 1e6 : 1e9)
+      );
 
       // Get the recipient's wallet address - ensure we're using the wallet address directly
       const recipientAddress =
@@ -403,11 +438,16 @@ export default function PaymentCreation() {
           ? recipientInfo.walletAddress
           : formData.recipient;
 
-      // Send the payment directly and get the transaction digest
-      const result = await sendPaymentDirectly(
-        recipientAddress,
-        Number(amount)
-      );
+      // Send the payment directly based on token type
+      let result;
+      if (formData.tokenType === "USDC") {
+        result = await sendUSDCPaymentDirectly(
+          recipientAddress,
+          Number(amount)
+        );
+      } else {
+        result = await sendPaymentDirectly(recipientAddress, Number(amount));
+      }
 
       if (result) {
         await addTransaction({
@@ -416,6 +456,7 @@ export default function PaymentCreation() {
           receiver: recipientAddress,
           amount: Number(formData.amount),
           status: "completed",
+          tokenType: "USDC",
         });
         // Add notification for completed payment
         const senderDisplay =
@@ -424,7 +465,7 @@ export default function PaymentCreation() {
         addNotification({
           type: "payment",
           title: "Payment Received",
-          description: `You received ${formData.amount} SUI from ${senderDisplay}`,
+          description: `You received ${formData.amount} ${formData.tokenType.toUpperCase()} from ${senderDisplay}`,
           priority: "normal",
           transactionId: result.data.transactionId as string,
         });
@@ -485,13 +526,16 @@ export default function PaymentCreation() {
     const numericAmount = Number.parseFloat(amount);
     if (numericAmount <= 0) return "$0.00 USD";
 
-    // Format with 2 decimal places and add thousands separators
-    const formattedValue = (numericAmount * suiPrice).toLocaleString("en-US", {
+    // Calculate value based on token type
+    const value =
+      formData.tokenType === "USDC"
+        ? numericAmount * 0.99 // USDC conversion
+        : numericAmount * suiPrice; // SUI conversion
+
+    return `$${value.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    });
-
-    return `$${formattedValue} USD`;
+    })} USD`;
   };
 
   const isValidAmount = (amount: string) => {
@@ -800,8 +844,10 @@ export default function PaymentCreation() {
                         Token
                       </Label>
                       <Select
-                        value={formData.token}
-                        onValueChange={(value) => handleChange("token", value)}
+                        value={formData.tokenType}
+                        onValueChange={(value) =>
+                          handleChange("tokenType", value)
+                        }
                       >
                         <SelectTrigger
                           id="token"
@@ -822,30 +868,46 @@ export default function PaymentCreation() {
                       <p className="text-gray-400">Your Balance:</p>
                       <p
                         className={`font-medium ${
-                          Number(formData.amount) > suiBalance
+                          Number(formData.amount) >
+                          (formData.tokenType === "USDC"
+                            ? usdcBalance
+                            : suiBalance)
                             ? "text-red-400"
                             : "text-green-400"
                         }`}
                       >
-                        {suiBalance.toFixed(4)} SUI
+                        {formData.tokenType === "USDC"
+                          ? usdcBalance.toFixed(2)
+                          : suiBalance.toFixed(2)}{" "}
+                        {formData.tokenType}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-gray-400">Required Amount:</p>
                       <p className="font-medium">
-                        {formData.amount || "0.00"} SUI
+                        {formData.amount || "0.00"}{" "}
+                        {formData.tokenType.toUpperCase()}
                       </p>
                     </div>
                   </div>
 
-                  {Number(formData.amount) > suiBalance && (
+                  {Number(formData.amount) >
+                    (formData.tokenType === "USDC"
+                      ? usdcBalance
+                      : suiBalance) && (
                     <div className="bg-red-900/20 p-4 rounded-lg border border-red-900/30 flex gap-3">
                       <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm text-red-200">
                           Insufficient balance. You need{" "}
-                          {(Number(formData.amount) - suiBalance).toFixed(4)}{" "}
-                          more SUI to complete this transaction.
+                          {(
+                            Number(formData.amount) -
+                            (formData.tokenType === "USDC"
+                              ? usdcBalance
+                              : suiBalance)
+                          ).toFixed(2)}{" "}
+                          more {formData.tokenType.toUpperCase()} to complete
+                          this transaction.
                         </p>
                       </div>
                     </div>
@@ -921,21 +983,25 @@ export default function PaymentCreation() {
                           </div>
                         </div>
 
-                        <div className="space-y-3">
-                          <div>
-                            <span className="text-gray-400 text-sm">
-                              Amount
-                            </span>
-                            <div className="font-medium">
-                              {formData.amount || "100"} {formData.token}
-                              {formData.amount &&
-                                isValidAmount(formData.amount) && (
-                                  <span className="text-sm text-gray-400 ml-2">
-                                    ≈{" "}
-                                    {calculateEquivalentValue(formData.amount)}
-                                  </span>
-                                )}
-                            </div>
+                        <div>
+                          <span className="text-gray-400 text-sm">Amount</span>
+                          <div className="font-medium">
+                            {formData.amount || "0"} {formData.tokenType}
+                            {formData.amount &&
+                              isValidAmount(formData.amount) && (
+                                <span className="text-sm text-gray-400 ml-2">
+                                  ≈ {calculateEquivalentValue(formData.amount)}
+                                </span>
+                              )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-gray-400 text-sm">
+                            Token Type
+                          </span>
+                          <div className="font-medium">
+                            {formData.tokenType}
                           </div>
                         </div>
 
@@ -948,6 +1014,15 @@ export default function PaymentCreation() {
                       </div>
 
                       <div className="space-y-3">
+                        <div>
+                          <span className="text-gray-400 text-sm">Balance</span>
+                          <div className="font-medium">
+                            {formData.tokenType === "USDC"
+                              ? usdcBalance
+                              : suiBalance}{" "}
+                            {formData.tokenType}
+                          </div>
+                        </div>
                         <div>
                           <span className="text-gray-400 text-sm">
                             Network Fee
@@ -965,10 +1040,10 @@ export default function PaymentCreation() {
                       <span className="text-gray-300">Total Amount:</span>
                       <span className="font-bold text-lg">
                         {formData.amount
-                          ? `${Number.parseFloat(formData.amount)
-                              // calculateNetworkFee()
-                              .toFixed(2)} SUI`
-                          : `${calculateNetworkFee()} SUI`}
+                          ? `${Number.parseFloat(formData.amount).toFixed(
+                              2
+                            )} ${formData.tokenType}`
+                          : `${calculateNetworkFee()} ${formData.tokenType}`}
                       </span>
                     </div>
                   </div>
@@ -1003,7 +1078,11 @@ export default function PaymentCreation() {
                     onClick={handleDirectPayment}
                     className="bg-blue-600 hover:bg-blue-700 transition-all"
                     disabled={
-                      isProcessing || Number(formData.amount) > suiBalance
+                      isProcessing ||
+                      Number(formData.amount) >
+                        (formData.tokenType === "USDC"
+                          ? usdcBalance
+                          : suiBalance)
                     }
                   >
                     {isProcessing ? "Processing..." : "Send Funds Directly"}
@@ -1012,7 +1091,11 @@ export default function PaymentCreation() {
                     onClick={handleSubmit}
                     className="bg-green-600 hover:bg-green-700 transition-all"
                     disabled={
-                      isProcessing || Number(formData.amount) > suiBalance
+                      isProcessing ||
+                      Number(formData.amount) >
+                        (formData.tokenType === "USDC"
+                          ? usdcBalance
+                          : suiBalance)
                     }
                   >
                     {isProcessing ? (
@@ -1057,7 +1140,22 @@ export default function PaymentCreation() {
                         <div>
                           <span className="text-gray-400 text-sm">Amount</span>
                           <div className="font-medium">
-                            {formData.amount || "100"} {formData.token}
+                            {formData.amount || "0"} {formData.tokenType}
+                            {formData.amount &&
+                              isValidAmount(formData.amount) && (
+                                <span className="text-sm text-gray-400 ml-2">
+                                  ≈ {calculateEquivalentValue(formData.amount)}
+                                </span>
+                              )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-gray-400 text-sm">
+                            Token Type
+                          </span>
+                          <div className="font-medium">
+                            {formData.tokenType}
                           </div>
                         </div>
 
@@ -1070,6 +1168,15 @@ export default function PaymentCreation() {
                       </div>
 
                       <div className="space-y-3">
+                        <div>
+                          <span className="text-gray-400 text-sm">Balance</span>
+                          <div className="font-medium">
+                            {formData.tokenType === "USDC"
+                              ? usdcBalance
+                              : suiBalance}{" "}
+                            {formData.tokenType}
+                          </div>
+                        </div>
                         <div>
                           <span className="text-gray-400 text-sm">
                             Network Fee
@@ -1086,11 +1193,17 @@ export default function PaymentCreation() {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-300">Total Amount:</span>
                       <span className="font-bold text-lg">
-                        {formData.amount
-                          ? `${Number.parseFloat(formData.amount)
-                              // calculateNetworkFee()
-                              .toFixed(2)} SUI`
-                          : `${calculateNetworkFee()} SUI`}
+                        {formData.amount ? (
+                          <>
+                            {Number.parseFloat(formData.amount).toFixed(2)}{" "}
+                            {formData.tokenType}
+                            <span className="text-sm text-gray-400 ml-2">
+                              ≈ {calculateEquivalentValue(formData.amount)}
+                            </span>
+                          </>
+                        ) : (
+                          `${calculateNetworkFee()} ${formData.tokenType}`
+                        )}
                       </span>
                     </div>
                   </div>
@@ -1146,7 +1259,7 @@ export default function PaymentCreation() {
                   <p className="text-gray-300 mb-6 max-w-md">
                     Your payment of{" "}
                     <span className="font-medium">
-                      {formData.amount} {formData.token}
+                      {formData.amount} {formData.tokenType.toUpperCase()}
                     </span>{" "}
                     has been created and is waiting to be claimed.
                   </p>
