@@ -67,7 +67,7 @@ export default function UserRegistrationDialog() {
     const fetchBalance = async () => {
       if (!walletAddress) return;
       try {
-        const { suiBalance: balance, usdBalance } =
+        const { suiBalance: balance, usdcBalance } =
           await getUserBalance(walletAddress);
         setUserBalance(Number(balance));
       } catch (error) {

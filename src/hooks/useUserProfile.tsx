@@ -17,6 +17,7 @@ export function useUserProfile() {
     getUserByUsername,
     getAllEmails,
     getAllUsernames,
+    getUserBalance,
   } = useContract();
 
   const fetchUserByAddress = useCallback(
@@ -110,6 +111,24 @@ export function useUserProfile() {
     },
     [getUserByUsername]
   );
+  const fetchUserBalance = useCallback(
+    async (address: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { suiBalance, usdcBalance } = await getUserBalance(address);
+        return { suiBalance, usdcBalance };
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch user balance";
+        setError(errorMessage);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [getUserBalance]
+  );
 
   return {
     userProfile,
@@ -120,5 +139,6 @@ export function useUserProfile() {
     fetchUserByUsername,
     fetchAllUsername,
     fetchAllEmails,
+    fetchUserBalance,
   };
 }

@@ -213,10 +213,10 @@ export default function BulkPayment() {
     const fetchBalance = async () => {
       if (walletAddress) {
         try {
-          const { suiBalance, usdBalance } =
+          const { suiBalance, usdcBalance } =
             await getUserBalance(walletAddress);
           const formattedSuiBalance = formatBalance(suiBalance);
-          const formattedUsdcBalance = formatBalance(usdBalance);
+          const formattedUsdcBalance = formatBalance(usdcBalance);
           setSuiBalance(Number(formattedSuiBalance));
           setUsdcBalance(Number(formattedUsdcBalance));
         } catch (error) {
@@ -944,6 +944,7 @@ export default function BulkPayment() {
             status: secure ? "active" : ("completed" as const),
           })),
           totalAmount,
+          tokenType: "SUI", //USDC
         });
 
         // Add notifications for each recipient with different priorities based on status

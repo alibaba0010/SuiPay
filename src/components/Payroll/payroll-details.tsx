@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Payroll, Recipient } from "@/types/payroll";
-import { useContract } from "@/hooks/useContract";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface PayrollDetailsProps {

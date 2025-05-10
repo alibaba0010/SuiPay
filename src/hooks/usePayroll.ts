@@ -60,7 +60,7 @@ export const usePayroll = create<PayrollStore>()((set, get) => ({
           address: r.address,
           amount: r.amount,
         })),
-        tokenType,
+        tokenType: payroll.tokenType,
       };
 
       const response = await axios.post("/api/payrolls", payload);

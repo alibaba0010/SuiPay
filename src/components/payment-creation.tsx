@@ -97,10 +97,10 @@ export default function PaymentCreation() {
     const fetchBalance = async () => {
       if (walletAddress) {
         try {
-          const { suiBalance, usdBalance } =
+          const { suiBalance, usdcBalance } =
             await getUserBalance(walletAddress);
           const formattedSuiBalance = formatBalance(suiBalance);
-          const formattedUsdcBalance = formatBalance(usdBalance);
+          const formattedUsdcBalance = formatBalance(usdcBalance);
 
           setSuiBalance(Number(formattedSuiBalance));
           setUsdcBalance(Number(formattedUsdcBalance));

@@ -104,14 +104,15 @@ export function useContract() {
       coinType:
         "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
     });
-    const usdBalance = userCoins.data.reduce(
+    console.log("userCoins", userCoins);
+    const usdcBalance = userCoins.data.reduce(
       (sum, c) => sum + BigInt(c.balance),
       BigInt(0)
     );
     const balance = await suiClient.getBalance({
       owner: address,
     });
-    return { suiBalance: balance.totalBalance, usdBalance };
+    return { suiBalance: balance.totalBalance, usdcBalance };
   };
   const getUserByEmail = async (email: string, address: string) => {
     if (!tokenObjectId) {
@@ -726,6 +727,7 @@ export function useContract() {
 
     try {
       const tx = new Transaction();
+      tx.setGasBudget(GAS_BUDGET);
 
       // Get user's USDC coins
       const userCoins = await suiClient.getCoins({
@@ -742,8 +744,6 @@ export function useContract() {
       const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
         tx.pure("u64", amount),
       ]);
-
-      tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::send_funds_directly_usdc`,
@@ -778,6 +778,7 @@ export function useContract() {
 
     try {
       const tx = new Transaction();
+      tx.setGasBudget(GAS_BUDGET);
 
       const userCoins = await suiClient.getCoins({
         owner: walletAddress,
@@ -792,8 +793,6 @@ export function useContract() {
       const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
         tx.pure("u64", amount),
       ]);
-
-      tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::init_transfer_usdc`,
@@ -828,6 +827,7 @@ export function useContract() {
 
     try {
       const tx = new Transaction();
+      tx.setGasBudget(GAS_BUDGET);
       const amountInMist = BigInt(Math.round(amount * 1_000_000));
 
       const userCoins = await suiClient.getCoins({
@@ -843,8 +843,6 @@ export function useContract() {
       const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
         tx.pure("u64", amountInMist),
       ]);
-
-      tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::claim_funds_usdc`,
@@ -882,6 +880,7 @@ export function useContract() {
 
     try {
       const tx = new Transaction();
+      tx.setGasBudget(GAS_BUDGET);
       const amountsInMist = amounts.map((amount) =>
         BigInt(Math.round(amount * 1_000_000))
       );
@@ -908,8 +907,6 @@ export function useContract() {
       const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
         tx.pure("u64", totalAmountInMist),
       ]);
-
-      tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::send_bulk_funds_directly_usdc`,
@@ -954,6 +951,7 @@ export function useContract() {
 
     try {
       const tx = new Transaction();
+      tx.setGasBudget(GAS_BUDGET);
       const amountsInMist = amounts.map((amount) =>
         BigInt(Math.round(amount * 1_000_000))
       );
@@ -980,8 +978,6 @@ export function useContract() {
       const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
         tx.pure("u64", totalAmountInMist),
       ]);
-
-      tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::init_bulk_transfer_usdc`,
@@ -1022,6 +1018,7 @@ export function useContract() {
 
     try {
       const tx = new Transaction();
+      tx.setGasBudget(GAS_BUDGET);
       const amountInMist = BigInt(Math.round(amount * 1_000_000));
 
       const userCoins = await suiClient.getCoins({
@@ -1037,8 +1034,6 @@ export function useContract() {
       const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
         tx.pure("u64", amountInMist),
       ]);
-
-      tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::refund_funds_usdc`,
@@ -1077,6 +1072,7 @@ export function useContract() {
 
     try {
       const tx = new Transaction();
+      tx.setGasBudget(GAS_BUDGET);
       const amountsInMist = amounts.map((amount) =>
         BigInt(Math.round(amount * 1_000_000))
       );
@@ -1089,8 +1085,6 @@ export function useContract() {
           "Total amount does not match sum of individual amounts"
         );
       }
-
-      tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::create_payroll_usdc`,

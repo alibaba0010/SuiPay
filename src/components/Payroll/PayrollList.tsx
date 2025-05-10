@@ -63,16 +63,6 @@ export function PayrollList() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const fetchPayrolls = async () => {
-      if (walletAddress) {
-        const payrolls = await getPayrolls(walletAddress);
-      }
-    };
-
-    fetchPayrolls();
-  }, [walletAddress]);
-
   // Filter payrolls based on search query and selected payroll
   useEffect(() => {
     if (!payrolls) return;
@@ -168,6 +158,7 @@ export function PayrollList() {
           name: payroll.name,
           ownerAddress: walletAddress,
           recipients: payroll.recipients,
+          tokenType: payroll.tokenType,
         });
       }
 
@@ -327,8 +318,8 @@ export function PayrollList() {
                     </TableCell>
                     <TableCell>
                       {payroll.totalAmount
-                        ? `${payroll.totalAmount.toFixed(2)} SUI`
-                        : "0.00 SUI"}
+                        ? `${payroll.totalAmount.toFixed(2)} ${payroll.tokenType}`
+                        : `0.00 ${payroll.tokenType}`}
                     </TableCell>
                     <TableCell>
                       {payroll.createdAt

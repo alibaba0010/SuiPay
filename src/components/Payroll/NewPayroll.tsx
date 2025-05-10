@@ -93,7 +93,7 @@ export default function AddNewPayroll() {
   } = useUserProfile();
 
   // Add the contract hook
-  const { createPayroll } = useContract();
+  const { createPayroll, createUSDCPayroll } = useContract();
 
   // Reference to the next input field
   const nextInputRef = useRef<HTMLInputElement>(null);
@@ -435,13 +435,23 @@ export default function AddNewPayroll() {
       const recipientAddresses = validRecipients.map((r) => r.address);
       const recipientAmounts = validRecipients.map((r) => Number(r.amount));
 
-      // First create payroll on smart contract
-      const contractResult = await createPayroll(
-        payrollData.name,
-        recipientAddresses,
-        recipientAmounts,
-        totalAmount
-      );
+      // First create payroll on smart contract using the appropriate function based on token type
+      let contractResult;
+      if (payrollData.token === "SUI") {
+        contractResult = await createPayroll(
+          payrollData.name,
+          recipientAddresses,
+          recipientAmounts,
+          totalAmount
+        );
+      } else {
+        contractResult = await createUSDCPayroll(
+          payrollData.name,
+          recipientAddresses,
+          recipientAmounts,
+          totalAmount
+        );
+      }
 
       if (contractResult.success) {
         // If smart contract creation succeeds, store in database
@@ -453,7 +463,7 @@ export default function AddNewPayroll() {
               address: r.address,
               amount: Number(r.amount),
             })),
-            tokenType: "SUI", // | "USDC"
+            tokenType: payrollData.token as "USDC" | "SUI",
           });
 
           toast({
@@ -492,7 +502,10 @@ export default function AddNewPayroll() {
       } else {
         toast({
           title: "Error",
-          description: contractResult.error || "Failed to create payroll",
+          description:
+            "error" in contractResult
+              ? contractResult.error
+              : "Failed to create payroll",
           variant: "destructive",
         });
       }
@@ -658,6 +671,35 @@ export default function AddNewPayroll() {
                       className="bg-[#061020] border-[#1a2a40] text-white"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="token-type" className="text-gray-300">
+                      Token Type <span className="text-red-400">*</span>
+                    </Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => handleInputChange("token", "SUI")}
+                        className={`flex-1 ${
+                          payrollData.token === "SUI"
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : "bg-[#061020] border-[#1a2a40] text-gray-300 hover:bg-[#0a1930]"
+                        }`}
+                      >
+                        SUI
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => handleInputChange("token", "USDC")}
+                        className={`flex-1 ${
+                          payrollData.token === "USDC"
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : "bg-[#061020] border-[#1a2a40] text-gray-300 hover:bg-[#0a1930]"
+                        }`}
+                      >
+                        USDC
+                      </Button>
+                    </div>
+                  </div>
                 </motion.div>
 
                 <motion.div className="space-y-4" variants={itemVariants}>
@@ -675,7 +717,7 @@ export default function AddNewPayroll() {
                         variant="outline"
                         className="bg-blue-900/30 text-blue-400 border-blue-800"
                       >
-                        {totalAmount.toFixed(2)} SUI
+                        {totalAmount.toFixed(2)} {payrollData.token}
                       </Badge>
                     </div>
                   </div>
@@ -892,7 +934,7 @@ export default function AddNewPayroll() {
                             {/* Amount field */}
                             <div className="sm:w-1/6 space-y-1">
                               <label className="text-sm text-gray-400">
-                                Amount (SUI)
+                                Amount ({payrollData.token})
                               </label>
                               <Input
                                 value={recipient.amount}
@@ -958,7 +1000,7 @@ export default function AddNewPayroll() {
                       <div className="flex items-center justify-between gap-8">
                         <p className="text-sm text-gray-400">Total Amount:</p>
                         <p className="text-xl font-bold text-white">
-                          {totalAmount.toFixed(2)} SUI
+                          {totalAmount.toFixed(2)} {payrollData.token}
                         </p>
                       </div>
                     </div>
@@ -1045,7 +1087,7 @@ export default function AddNewPayroll() {
                               </div>
                             </div>
                             <p className="font-medium">
-                              {recipient.amount} SUI
+                              {recipient.amount} {payrollData.token}
                             </p>
                           </motion.div>
                         ))}
@@ -1064,7 +1106,7 @@ export default function AddNewPayroll() {
                       <div className="text-right">
                         <p className="text-gray-400">Total Amount:</p>
                         <p className="text-xl font-bold">
-                          {totalAmount.toFixed(2)} SUI
+                          {totalAmount.toFixed(2)} {payrollData.token}
                         </p>
                       </div>
                     </div>

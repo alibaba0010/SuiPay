@@ -33,6 +33,7 @@ export const importPayrolls = async (file: File): Promise<Payroll[]> => {
               updatedAt: new Date(), // Set current date as updatedAt
               ownerAddress: "", // Set appropriate default or get from somewhere
               status: values[5],
+              tokenType: "Token-Type" as "SUI" | "USDC",
             };
           });
 

@@ -266,9 +266,9 @@ export default function Dashboard() {
     if (!walletAddress) return;
     const fetchBalance = async () => {
       try {
-        const { suiBalance, usdBalance } = await getUserBalance(walletAddress);
+        const { suiBalance, usdcBalance } = await getUserBalance(walletAddress);
         const formattedSuiBalance = formatBalance(suiBalance);
-        const formattedUsdcBalance = formatBalance(usdBalance);
+        const formattedUsdcBalance = formatBalance(usdcBalance);
         setSuiBalance(formattedSuiBalance);
         setUsdcBalance(formattedUsdcBalance);
       } catch (error) {

@@ -15,6 +15,7 @@ export interface Payroll {
   ownerAddress: string;
   status: string;
   recipients: Recipient[];
+  tokenType: "SUI" | "USDC";
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
