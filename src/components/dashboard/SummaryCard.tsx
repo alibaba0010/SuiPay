@@ -1,32 +1,52 @@
+"use client";
+
+import type React from "react";
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SummaryCardProps {
   title: string;
-  value: string | React.ReactNode;
-  description: string;
+  value: React.ReactNode;
+  description: React.ReactNode;
   icon: React.ReactNode;
-  variants: any;
   color: string;
+  variants?: {
+    hidden: { opacity: number; scale: number };
+    show: { opacity: number; scale: number; transition: { duration: number } };
+    hover: { y: number; boxShadow: string; transition: { duration: number } };
+  };
 }
-
 export function SummaryCard({
   title,
   value,
   description,
   icon,
-  variants,
-  color,
+  color = "from-blue-700 to-blue-900",
 }: SummaryCardProps) {
+  const cardVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    show: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.5 },
+    },
+    hover: {
+      y: -5,
+      boxShadow: "0 10px 30px -15px rgba(0, 0, 0, 0.3)",
+      transition: { duration: 0.2 },
+    },
+  };
+
   return (
     <motion.div
-      variants={variants}
+      variants={cardVariants}
+      initial="hidden"
+      animate="show"
       whileHover="hover"
       className="overflow-hidden"
     >
-      <Card
-        className={`bg-[#0a1930] border-[#1a2a40] text-white overflow-hidden relative h-full`}
-      >
+      <Card className="bg-[#0a1930] border-[#1a2a40] text-white overflow-hidden relative h-full">
         <div
           className={`absolute inset-0 bg-gradient-to-br ${color} opacity-20`}
         ></div>

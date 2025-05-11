@@ -828,14 +828,12 @@ export function useContract() {
     try {
       const tx = new Transaction();
       tx.setGasBudget(GAS_BUDGET);
-      const amountInMist = BigInt(Math.round(amount * 1_000_000));
+      const amountInMist = BigInt(Math.round(amount * 1_000_000_000));
 
       const userCoins = await suiClient.getCoins({
         owner: walletAddress,
-        coinType:
-          "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+        coinType: "0x2::sui::SUI",
       });
-
       if (!userCoins.data.length) {
         throw new Error("No USDC coins available");
       }

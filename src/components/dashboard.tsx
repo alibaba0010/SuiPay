@@ -118,6 +118,10 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { setUpcomingCount: setGlobalUpcomingCount } = useScheduleContext();
 
+  const [escrowUSDCAmount, setEscrowUSDCAmount] = useState(0);
+  const [totalUSDCSent, setTotalUSDCSent] = useState(0);
+  const [totalUSDCReceived, setTotalUSDCReceived] = useState(0);
+
   const refreshTransactions = useCallback(async () => {
     if (!walletAddress) return;
     setIsRefreshing(true);
@@ -195,34 +199,55 @@ export default function Dashboard() {
       ).length;
       setPendingCount(pending);
 
-      // Calculate escrow amount
-      const escrow = allTransactions
-        .filter((tx) => tx.status === "active")
+      // Calculate escrow amounts
+      const escrowSui = allTransactions
+        .filter((tx) => tx.status === "active" && tx.token === "SUI")
         .reduce((sum, tx) => sum + tx.amount, 0);
-      setEscrowAmount(escrow);
+      const escrowUsdc = allTransactions
+        .filter((tx) => tx.status === "active" && tx.token === "USDC")
+        .reduce((sum, tx) => sum + tx.amount, 0);
+      setEscrowAmount(escrowSui);
+      setEscrowUSDCAmount(escrowUsdc);
 
       // Calculate total funds sent
-      // For sender address === wallet address, in both single and bulk transactions
-      // if status is completed or claimed add the amount to total sent
-      const sent = allTransactions
+      const sentSui = allTransactions
         .filter(
           (tx) =>
             tx.sender === walletAddress &&
-            (tx.status === "completed" || tx.status === "claimed")
+            (tx.status === "completed" || tx.status === "claimed") &&
+            tx.token === "SUI"
         )
         .reduce((sum, tx) => sum + tx.amount, 0);
-      setTotalFundsSent(sent);
+      const sentUsdc = allTransactions
+        .filter(
+          (tx) =>
+            tx.sender === walletAddress &&
+            (tx.status === "completed" || tx.status === "claimed") &&
+            tx.token === "USDC"
+        )
+        .reduce((sum, tx) => sum + tx.amount, 0);
+      setTotalFundsSent(sentSui);
+      setTotalUSDCSent(sentUsdc);
 
       // Calculate total funds received
-      // For recipient address === wallet address, if status is claimed
-      const received = allTransactions
+      const receivedSui = allTransactions
         .filter(
           (tx) =>
             tx.receiver === walletAddress &&
-            (tx.status === "claimed" || tx.status === "completed")
+            (tx.status === "claimed" || tx.status === "completed") &&
+            tx.token === "SUI"
         )
         .reduce((sum, tx) => sum + tx.amount, 0);
-      setTotalFundsReceived(received);
+      const receivedUsdc = allTransactions
+        .filter(
+          (tx) =>
+            tx.receiver === walletAddress &&
+            (tx.status === "claimed" || tx.status === "completed") &&
+            tx.token === "USDC"
+        )
+        .reduce((sum, tx) => sum + tx.amount, 0);
+      setTotalFundsReceived(receivedSui);
+      setTotalUSDCReceived(receivedUsdc);
     } catch (error) {
       console.error("Error refreshing transactions:", error);
     } finally {
@@ -399,7 +424,7 @@ export default function Dashboard() {
               <div className="text-sm text-gray-300">{`${usdcBalance} USDC`}</div>
             </div>
           }
-          description={`≈ ${totalUsdValue} USD`}
+          description={`≈ ${totalUsdValue.toFixed(2)} USD`}
           icon={<Wallet className="h-5 w-5" />}
           variants={cardVariants}
           color="from-blue-700 to-blue-900"
@@ -407,35 +432,55 @@ export default function Dashboard() {
         <SummaryCard
           title="Pending Transactions"
           value={pendingCount.toString()}
-          description={`≈ ${escrowAmount.toFixed(1)} SUI`}
+          description={
+            <div className="flex flex-col gap-1 text-sm text-gray-300">
+              <div>{`≈ ${escrowAmount.toFixed(1)} SUI`}</div>
+              <div>{`≈ ${escrowUSDCAmount.toFixed(1)} USDC`}</div>
+            </div>
+          }
           icon={<Activity className="h-5 w-5" />}
           variants={cardVariants}
           color="from-indigo-700 to-indigo-900"
         />
         <SummaryCard
-          title="Funds Sent"
-          value={`${totalFundsSent.toFixed(2)} SUI`}
-          description={`≈ ${(totalFundsSent * suiPrice).toFixed(2)} USD`}
+          title="Total Funds Sent"
+          value={
+            <div className="flex flex-col gap-2">
+              <div className="text-sm">{`${totalFundsSent.toFixed(2)} SUI`}</div>
+              <div className="text-sm text-gray-300">{`${totalUSDCSent.toFixed(2)} USDC`}</div>
+            </div>
+          }
+          description={`≈ ${(totalFundsSent * suiPrice + totalUSDCSent * 0.99).toFixed(2)} USD`}
           icon={<DollarSign className="h-5 w-5" />}
           variants={cardVariants}
           color="from-blue-700 to-blue-900"
         />
         <SummaryCard
           title="Total Funds Received"
-          value={`${totalFundsReceived.toFixed(2)} SUI`}
-          description={`≈ ${(totalFundsReceived * suiPrice).toFixed(2)} USD`}
+          value={
+            <div className="flex flex-col gap-2">
+              <div className="text-sm">{`${totalFundsReceived.toFixed(2)} SUI`}</div>
+              <div className="text-sm text-gray-300">{`${totalUSDCReceived.toFixed(2)} USDC`}</div>
+            </div>
+          }
+          description={`≈ ${(totalFundsReceived * suiPrice + totalUSDCReceived * 0.99).toFixed(2)} USD`}
           icon={<DollarSign className="h-5 w-5" />}
           variants={cardVariants}
           color="from-blue-700 to-blue-900"
         />
         <SummaryCard
           title="Upcoming Payments"
-          value={upcomingCount.toString()}
-          description={
-            nextScheduledPayment
-              ? `Next: ${getNextPaymentText(nextScheduledPayment)}`
-              : "No upcoming payments"
+          value={
+            <div className="flex flex-col gap-4">
+              <div>{upcomingCount.toString()}</div>
+              <div className="text-sm text-gray-300">
+                {nextScheduledPayment
+                  ? `Next: ${getNextPaymentText(nextScheduledPayment)}`
+                  : "No upcoming payments"}
+              </div>
+            </div>
           }
+          description=""
           icon={<Calendar className="h-5 w-5" />}
           variants={cardVariants}
           color="from-indigo-700 to-indigo-900"
