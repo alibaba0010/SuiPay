@@ -16,12 +16,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useContract } from "@/hooks/useContract";
-import { generateVerificationCode } from "@/utils/helpers";
+import { generateVerificationCode, shortenAddress } from "@/utils/helpers";
 import { useTransactionStorage } from "@/hooks/useTransactionStorage";
 import { sendBulkPaymentEmails, sendPaymentEmail } from "@/hooks/UseEmail";
 import { toast } from "@/components/ui/use-toast";
 import { useNotifications } from "@/contexts/notifications-context";
-import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface Recipient {
   address: string;
@@ -39,6 +38,7 @@ interface ScheduledTransaction {
   recipients?: Recipient[];
   recipientsCount?: number;
   totalAmount?: number;
+  tokenType: "SUI" | "USDC";
 }
 
 interface ScheduleListProps {
@@ -57,13 +57,8 @@ export function ScheduleList({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { addNotification } = useNotifications();
   const { getSchedules, isLoading, deleteSchedule } = useSchedule();
-  const {
-    fetchUserByAddress,
-    userProfile,
-    isLoading: isGetting,
-  } = useUserProfile();
 
-  const { refundFunds } = useContract();
+  const { refundFunds, getUserByAddress } = useContract();
   const [selectedSchedule, setSelectedSchedule] =
     useState<ScheduledTransaction | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,6 +88,7 @@ export function ScheduleList({
         receiver: string;
         amount: number;
         scheduledDate: string;
+        tokenType: "SUI" | "USDC";
       }
 
       interface BulkTransactionResponse {
@@ -102,11 +98,7 @@ export function ScheduleList({
         totalAmount: number;
         scheduledDate: string;
         recipients: Recipient[];
-      }
-
-      interface ScheduleResponse {
-        singleTransactions: SingleTransactionResponse[];
-        bulkTransactions: BulkTransactionResponse[];
+        tokenType: "SUI" | "USDC";
       }
 
       const scheduled: ScheduledTransaction[] = [
@@ -119,6 +111,7 @@ export function ScheduleList({
           amount: tx.amount,
           scheduledDate: new Date(tx.scheduledDate),
           recipientsCount: 1,
+          tokenType: tx.tokenType,
         })),
         ...response.bulkTransactions.map((tx: BulkTransactionResponse) => ({
           id: tx._id || "",
@@ -130,6 +123,7 @@ export function ScheduleList({
           scheduledDate: new Date(tx.scheduledDate),
           recipientsCount: tx.recipients.length,
           recipients: tx.recipients,
+          tokenType: tx.tokenType,
         })),
       ].sort((a, b) => b.scheduledDate.getTime() - a.scheduledDate.getTime()); // Latest first
 
@@ -148,7 +142,7 @@ export function ScheduleList({
 
       const usernamePromises = Array.from(addresses).map(async (address) => {
         try {
-          const userInfo = await fetchUserByAddress(address);
+          const userInfo = await getUserByAddress(address);
           if (!userInfo) return;
           const { username, email } = userInfo;
           return { address, username };
@@ -224,7 +218,7 @@ export function ScheduleList({
         const verificationCode = generateVerificationCode();
 
         // Get recipient info
-        const recipientInfo = await fetchUserByAddress(transaction.receiver);
+        const recipientInfo = await getUserByAddress(transaction.receiver);
 
         await addTransaction({
           transactionDigest: transaction.transactionDigest,
@@ -233,12 +227,12 @@ export function ScheduleList({
           amount: transaction.amount,
           status: "active",
           verificationCode,
-          tokenType: "SUI", // USDC
+          tokenType: transaction.tokenType,
         });
         addNotification({
           type: "claim",
           title: "Payment Available to Claim",
-          description: `${transaction.sender} sent you ${transaction.amount} SUI. Click to claim.`,
+          description: `${transaction.sender} sent you ${transaction.amount} ${transaction.tokenType}. Click to claim.`,
           priority: "high",
           transactionId,
         });
@@ -246,12 +240,12 @@ export function ScheduleList({
         if (recipientInfo?.email) {
           setIsSendingEmail(true);
           try {
-            const senderInfo = await fetchUserByAddress(transaction.sender);
+            const senderInfo = await getUserByAddress(transaction.sender);
             await sendPaymentEmail({
               recipientEmail: recipientInfo.email,
               senderEmail: senderInfo?.email || transaction.sender,
               amount: transaction.amount.toString(),
-              token: "SUI",
+              token: transaction.tokenType,
               verificationCode,
             });
 
@@ -278,7 +272,7 @@ export function ScheduleList({
         // Generate codes and get recipient info
         const recipientDetails = await Promise.all(
           transaction.recipients.map(async (r) => {
-            const info = await fetchUserByAddress(r.address);
+            const info = await getUserByAddress(r.address);
             return {
               ...r,
               email: info?.email,
@@ -297,18 +291,18 @@ export function ScheduleList({
             status: "active",
           })),
           totalAmount: transaction.totalAmount ?? 0,
-          tokenType: "SUI", // USDC
+          tokenType: transaction.tokenType,
         });
 
         // Prepare email payloads for recipients with valid emails
-        const senderInfo = await fetchUserByAddress(transaction.sender);
+        const senderInfo = await getUserByAddress(transaction.sender);
         const emailPayloads = recipientDetails
           .filter((r) => r.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email))
           .map((r) => ({
             recipientEmail: r.email!,
             senderEmail: senderInfo?.email || transaction.sender,
             amount: r.amount.toString(),
-            token: "SUI",
+            token: transaction.tokenType,
             verificationCode: r.plainCode,
           }));
 
@@ -450,7 +444,7 @@ export function ScheduleList({
                 <div className="flex items-center justify-between sm:justify-end gap-4 pl-12 sm:pl-0">
                   <div className="text-right">
                     <div className="font-medium text-white">
-                      {transaction.amount.toFixed(2)} SUI
+                      {transaction.amount.toFixed(2)} {transaction.tokenType}
                     </div>
                     <div className="text-sm text-gray-400">
                       {format(transaction.scheduledDate, "MMM dd, yyyy")}
@@ -562,7 +556,10 @@ export function ScheduleList({
                 </div>
 
                 <div className="text-gray-400">Total Amount:</div>
-                <div>{selectedSchedule.amount.toFixed(2)} SUI</div>
+                <div>
+                  {selectedSchedule.amount.toFixed(2)}{" "}
+                  {selectedSchedule.tokenType}
+                </div>
 
                 <div className="text-gray-400">Scheduled Date:</div>
                 <div>
@@ -599,9 +596,13 @@ export function ScheduleList({
                           className="flex justify-between p-2 border-b border-[#1a2a40] last:border-0"
                         >
                           <div className="truncate max-w-[200px]">
-                            {usernames[recipient.address] || recipient.address}
+                            {usernames[recipient.address] ||
+                              shortenAddress(recipient.address)}
                           </div>
-                          <div>{recipient.amount.toFixed(2)} SUI</div>
+                          <div>
+                            {recipient.amount.toFixed(2)}{" "}
+                            {selectedSchedule.tokenType}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -613,7 +614,7 @@ export function ScheduleList({
                   <div className="text-gray-400">Recipient:</div>
                   <div>
                     {usernames[selectedSchedule.receiver] ||
-                      selectedSchedule.receiver}
+                      shortenAddress(selectedSchedule.receiver)}
                   </div>
                 </div>
               )}

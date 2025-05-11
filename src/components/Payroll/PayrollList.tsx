@@ -96,7 +96,6 @@ export function PayrollList() {
   }, [payrolls, searchQuery, selectedPayroll]);
 
   const handleViewDetails = (payroll: Payroll) => {
-    console.log("Selected payroll:", payroll);
     setActivePayroll(payroll);
     setViewMode("details");
   };

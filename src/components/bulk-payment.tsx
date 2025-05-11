@@ -84,8 +84,13 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function BulkPayment() {
-  const { sendBulkPayment, sendSecureBulkPayment, getUserBalance } =
-    useContract();
+  const {
+    sendBulkPayment,
+    sendSecureBulkPayment,
+    getUserBalance,
+    sendBulkUSDCPayment,
+    sendSecureBulkUSDCPayment,
+  } = useContract();
   const { walletAddress } = useWalletContext() || {};
   const { toast } = useToast();
   const router = useRouter();
@@ -106,6 +111,9 @@ export default function BulkPayment() {
   ]);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedTokenType, setSelectedTokenType] = useState<"SUI" | "USDC">(
+    "SUI"
+  );
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showRecipientSearch, setShowRecipientSearch] = useState(false);
@@ -272,6 +280,19 @@ export default function BulkPayment() {
       setSelectedPayrollData(payrollData);
       setShowManualEntry(false);
 
+      // Set token type from payroll data if available
+      if (
+        payrollData.tokenType &&
+        (payrollData.tokenType === "SUI" || payrollData.tokenType === "USDC")
+      ) {
+        setSelectedTokenType(payrollData.tokenType);
+        // Add a toast notification to inform the user about the token type switch
+        toast({
+          title: "Token Type Changed",
+          description: `Switched to ${payrollData.tokenType} based on payroll settings`,
+        });
+      }
+
       // Create new payments from the payroll recipients
       const newPayments = await Promise.all(
         payrollData.recipients.map(async (recipient: any) => {
@@ -308,7 +329,7 @@ export default function BulkPayment() {
 
       toast({
         title: "Payroll Selected",
-        description: `Loaded ${newPayments.length} recipients from "${payrollData.name}"`,
+        description: `Loaded ${newPayments.length} recipients from "${payrollData.name}" (${payrollData.tokenType || "SUI"})`,
       });
     } catch (error) {
       console.error("Error fetching payroll data:", error);
@@ -889,12 +910,14 @@ export default function BulkPayment() {
       return;
     }
 
-    // Add balance validation
-    if (totalAmount > suiBalance) {
+    // Add balance validation based on selected token type
+    const currentBalance =
+      selectedTokenType === "SUI" ? suiBalance : usdcBalance;
+    if (totalAmount > currentBalance) {
       toast({
         variant: "destructive",
         title: "Insufficient balance",
-        description: `You need ${totalAmount.toFixed(2)} SUI but only have ${suiBalance.toFixed(2)} SUI`,
+        description: `You need ${totalAmount.toFixed(2)} ${selectedTokenType} but only have ${currentBalance.toFixed(2)} ${selectedTokenType}`,
       });
       return;
     }
@@ -911,20 +934,39 @@ export default function BulkPayment() {
       const totalAmount = recipients.reduce((sum, r) => sum + r.amount, 0);
       let result;
 
-      if (secure) {
-        // Handle secure bulk payment
-        result = await sendSecureBulkPayment(
-          recipients.map((r) => r.address),
-          recipients.map((r) => r.amount),
-          totalAmount
-        );
+      if (selectedTokenType === "SUI") {
+        if (secure) {
+          // Handle secure bulk payment for SUI
+          result = await sendSecureBulkPayment(
+            recipients.map((r) => r.address),
+            recipients.map((r) => r.amount),
+            totalAmount
+          );
+        } else {
+          // Handle regular bulk payment for SUI
+          result = await sendBulkPayment(
+            recipients.map((r) => r.address),
+            recipients.map((r) => r.amount),
+            totalAmount
+          );
+        }
       } else {
-        // Handle regular bulk payment
-        result = await sendBulkPayment(
-          recipients.map((r) => r.address),
-          recipients.map((r) => r.amount),
-          totalAmount
-        );
+        // USDC payments
+        if (secure) {
+          // Handle secure bulk payment for USDC
+          result = await sendSecureBulkUSDCPayment(
+            recipients.map((r) => r.address),
+            recipients.map((r) => r.amount),
+            totalAmount
+          );
+        } else {
+          // Handle regular bulk payment for USDC
+          result = await sendBulkUSDCPayment(
+            recipients.map((r) => r.address),
+            recipients.map((r) => r.amount),
+            totalAmount
+          );
+        }
       }
 
       if (result?.success) {
@@ -944,7 +986,7 @@ export default function BulkPayment() {
             status: secure ? "active" : ("completed" as const),
           })),
           totalAmount,
-          tokenType: "SUI", //USDC
+          tokenType: selectedTokenType,
         });
 
         // Add notifications for each recipient with different priorities based on status
@@ -958,8 +1000,8 @@ export default function BulkPayment() {
                 : "Payment Available to Claim",
             description:
               status === "completed"
-                ? `You received ${recipient.amount} SUI from ${senderDisplay}`
-                : `${senderDisplay} sent you ${recipient.amount} SUI. Click to claim.`,
+                ? `You received ${recipient.amount} ${selectedTokenType} from ${senderDisplay}`
+                : `${senderDisplay} sent you ${recipient.amount} ${selectedTokenType}. Click to claim.`,
             priority: status === "active" ? "high" : "normal",
             transactionId: result.data?.transactionId as string,
           });
@@ -977,7 +1019,7 @@ export default function BulkPayment() {
               recipientEmail: payment.email,
               senderEmail: senderEmail || walletAddress,
               amount: payment.amount,
-              token: "SUI",
+              token: selectedTokenType,
               verificationCode: recipients[index].plainCode, // Use the generated plainCode
               transactionId: result.data?.transactionId,
             }));
@@ -1022,18 +1064,13 @@ export default function BulkPayment() {
           description: `${secure ? "Secure payment" : "Payment"} processed successfully`,
         });
       } else {
-        throw new Error(result?.error || "Failed to send payment");
+        throw new Error(
+          !result.success && "error" in result
+            ? result.error
+            : "Failed to send payment"
+        );
       }
     } catch (error) {
-      console.error("Bulk payment error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An error occurred while processing the payment",
-      });
       console.error("Bulk payment error:", error);
       toast({
         variant: "destructive",
@@ -1075,7 +1112,7 @@ export default function BulkPayment() {
             variant="outline"
             className="bg-blue-900/30 text-blue-400 border-blue-800"
           >
-            {totalAmount.toFixed(4)} SUI
+            {totalAmount.toFixed(4)} {selectedTokenType}
           </Badge>
         </div>
       </motion.div>
@@ -1187,6 +1224,57 @@ export default function BulkPayment() {
                         </div>
                       </motion.div>
                     )}
+                  </div>
+                </div>
+
+                {/* Token Type Selection */}
+                <div className="bg-[#061020]/80 rounded-lg border border-[#1a2a40] overflow-hidden mt-4">
+                  <div className="p-4 border-b border-[#1a2a40] bg-[#0a1930]/50">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Select Token Type
+                    </h4>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => setSelectedTokenType("SUI")}
+                        className={`flex-1 ${
+                          selectedTokenType === "SUI"
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : "bg-[#061020] border-[#1a2a40] text-gray-300 hover:bg-[#0a1930]"
+                        }`}
+                      >
+                        SUI
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setSelectedTokenType("USDC")}
+                        className={`flex-1 ${
+                          selectedTokenType === "USDC"
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-[#061020] border-[#1a2a40] text-gray-300 hover:bg-[#0a1930]"
+                        }`}
+                        disabled={
+                          !showManualEntry &&
+                          selectedPayrollData?.tokenType === "SUI"
+                        }
+                      >
+                        USDC
+                      </Button>
+                    </div>
+                    <div className="mt-2 flex justify-between text-sm">
+                      <span className="text-gray-400">Available Balance:</span>
+                      <span
+                        className={`font-medium ${selectedTokenType === "SUI" ? (suiBalance < totalAmount ? "text-red-400" : "text-green-400") : usdcBalance < totalAmount ? "text-red-400" : "text-green-400"}`}
+                      >
+                        {selectedTokenType === "SUI"
+                          ? suiBalance.toFixed(4)
+                          : usdcBalance.toFixed(4)}{" "}
+                        {selectedTokenType}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1409,7 +1497,7 @@ export default function BulkPayment() {
                           {/* Amount field */}
                           <div className="sm:w-1/6 space-y-1">
                             <label className="text-sm text-gray-400">
-                              Amount (SUI)
+                              Amount ({selectedTokenType})
                             </label>
                             <Input
                               value={payment.amount}
@@ -1477,7 +1565,7 @@ export default function BulkPayment() {
                     <div className="flex items-center justify-between gap-8">
                       <p className="text-sm text-gray-400">Total Amount:</p>
                       <p className="text-xl font-bold text-white">
-                        {totalAmount.toFixed(2)} SUI
+                        {totalAmount.toFixed(2)} {selectedTokenType}
                       </p>
                     </div>
                   </div>
@@ -1537,27 +1625,46 @@ export default function BulkPayment() {
                       <div>
                         <p className="text-gray-400">Your Balance:</p>
                         <p
-                          className={`font-medium ${suiBalance < totalAmount ? "text-red-400" : "text-green-400"}`}
+                          className={`font-medium ${
+                            selectedTokenType === "SUI"
+                              ? suiBalance < totalAmount
+                                ? "text-red-400"
+                                : "text-green-400"
+                              : usdcBalance < totalAmount
+                                ? "text-red-400"
+                                : "text-green-400"
+                          }`}
                         >
-                          {suiBalance.toFixed(2)} SUI
+                          {selectedTokenType === "SUI"
+                            ? suiBalance.toFixed(2)
+                            : usdcBalance.toFixed(2)}{" "}
+                          {selectedTokenType}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-gray-400">Required Amount:</p>
                         <p className="font-medium">
-                          {totalAmount.toFixed(4)} SUI
+                          {totalAmount.toFixed(4)} {selectedTokenType}
                         </p>
                       </div>
                     </div>
 
-                    {suiBalance < totalAmount && (
+                    {(selectedTokenType === "SUI"
+                      ? suiBalance < totalAmount
+                      : usdcBalance < totalAmount) && (
                       <div className="bg-red-900/20 p-4 rounded-lg border border-red-900/30 flex gap-3 mb-4">
                         <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
                         <div>
                           <p className="text-sm text-red-200">
                             Insufficient balance. You need{" "}
-                            {(totalAmount - suiBalance).toFixed(4)} more SUI to
-                            complete this transaction.
+                            {(
+                              totalAmount -
+                              (selectedTokenType === "SUI"
+                                ? suiBalance
+                                : usdcBalance)
+                            ).toFixed(4)}{" "}
+                            more {selectedTokenType} to complete this
+                            transaction.
                           </p>
                         </div>
                       </div>
@@ -1598,7 +1705,9 @@ export default function BulkPayment() {
                                 )}
                               </div>
                             </div>
-                            <p className="font-medium">{payment.amount} SUI</p>
+                            <p className="font-medium">
+                              {payment.amount} {selectedTokenType}
+                            </p>
                           </motion.div>
                         ))}
                     </div>
@@ -1618,7 +1727,7 @@ export default function BulkPayment() {
                       <div className="text-right">
                         <p className="text-gray-400">Total Amount:</p>
                         <p className="text-xl font-bold">
-                          {totalAmount.toFixed(2)} SUI
+                          {totalAmount.toFixed(2)} {selectedTokenType}
                         </p>
                       </div>
                     </div>
@@ -1772,7 +1881,7 @@ export default function BulkPayment() {
       >
         <DialogContent className="sm:max-w-[500px] bg-[#0a1930] border-[#1a2a40] text-white">
           <DialogHeader>
-            <DialogTitle>Select Payroll</DialogTitle>
+            <DialogTitle className="text-xl">Select Payroll</DialogTitle>
             <DialogDescription className="text-gray-400">
               Choose from your saved payrolls or continue with manual entry
             </DialogDescription>
@@ -1781,13 +1890,13 @@ export default function BulkPayment() {
           <div className="space-y-4 py-4">
             <div className="max-h-[300px] overflow-y-auto space-y-2">
               <Button
-                variant="blueWhite"
+                variant="outline"
                 className="w-full justify-start border-[#1a2a40] hover:bg-[#061020] hover:border-blue-600 transition-all p-3 h-auto"
                 onClick={() => handlePayrollSelect("none")}
               >
                 <div className="flex items-center gap-3 w-full">
-                  <div className="h-9 w-9 rounded-full bg-[#061020] border border-[#1a2a40] flex items-center justify-center">
-                    <Plus className="h-4 w-4 text-blue-400" />
+                  <div className="h-10 w-10 rounded-full bg-[#061020] border border-[#1a2a40] flex items-center justify-center">
+                    <Plus className="h-5 w-5 text-blue-400" />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="font-medium">Manual Entry</div>
@@ -1807,25 +1916,54 @@ export default function BulkPayment() {
                     transition={{ delay: index * 0.05, duration: 0.3 }}
                   >
                     <Button
-                      variant="blueWhite"
-                      className="w-full justify-start border-[#1a2a40] hover:bg-[#061020] hover:border-blue-600 transition-all p-3 h-auto"
+                      variant="ghost"
+                      className={`w-full justify-start border hover:bg-[#061020] transition-all p-3 h-auto ${
+                        selectedPayroll === payroll.name
+                          ? "border-blue-600 bg-blue-900/20"
+                          : "border-[#1a2a40]"
+                      }`}
                       onClick={() => handlePayrollSelect(payroll.name)}
                     >
                       <div className="flex items-center gap-3 w-full">
-                        <div className="h-9 w-9 rounded-full bg-blue-900/30 border border-blue-800/30 flex items-center justify-center">
-                          <Users className="h-4 w-4 text-blue-400" />
+                        <div
+                          className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                            payroll.tokenType === "USDC"
+                              ? "bg-green-900/30 border-green-800/30"
+                              : "bg-blue-900/30 border-blue-800/30"
+                          } border`}
+                        >
+                          <Users
+                            className={`h-5 w-5 ${payroll.tokenType === "USDC" ? "text-green-400" : "text-blue-400"}`}
+                          />
                         </div>
                         <div className="flex-1 text-left overflow-hidden">
-                          <div className="font-medium">{payroll.name}</div>
+                          <div className="font-medium flex items-center gap-2">
+                            {payroll.name}
+                            {payroll.tokenType && (
+                              <Badge
+                                className={`text-xs ${
+                                  payroll.tokenType === "USDC"
+                                    ? "bg-green-900/30 text-green-400 border-green-800"
+                                    : "bg-blue-900/30 text-blue-400 border-blue-800"
+                                }`}
+                              >
+                                {payroll.tokenType}
+                              </Badge>
+                            )}
+                          </div>
                           <div className="text-xs text-gray-400">
                             {payroll.recipients?.length || 0} recipients
                           </div>
                         </div>
                         <Badge
-                          variant="outline"
-                          className="text-xs bg-[#061020] border-[#1a2a40]"
+                          className={`text-xs ${
+                            payroll.tokenType === "USDC"
+                              ? "bg-green-900/30 text-green-400 border-green-800"
+                              : "bg-blue-900/30 text-blue-400 border-blue-800"
+                          }`}
                         >
-                          {payroll.totalAmount?.toFixed(2) || "0.00"} SUI
+                          {payroll.totalAmount?.toFixed(2) || "0.00"}{" "}
+                          {payroll.tokenType || "SUI"}
                         </Badge>
                       </div>
                     </Button>

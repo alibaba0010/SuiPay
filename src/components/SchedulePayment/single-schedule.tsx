@@ -52,6 +52,7 @@ interface FormData {
   amount: string;
   paymentMethod: string;
   memo: string;
+  tokenType: "SUI" | "USDC";
 }
 
 interface TimeSelection {
@@ -72,6 +73,7 @@ export default function SinglePayment() {
     amount: "",
     paymentMethod: "",
     memo: "",
+    tokenType: "SUI",
   });
 
   const [recipientInfo, setRecipientInfo] = useState<RecipientInfo | null>(
@@ -100,26 +102,31 @@ export default function SinglePayment() {
   };
 
   const { scheduleTransaction } = useSchedule();
-  const { getUserBalance, sendPayment } = useContract();
+  const { getUserBalance, sendPayment, sendUSDCPayment } = useContract();
   const { walletAddress } = useWalletContext() || {};
   const { fetchUserByAddress, fetchUserByEmail, fetchUserByUsername } =
     useUserProfile();
   const suiPrice = useSuiPrice();
   const router = useRouter();
-  const [userBalance, setUserBalance] = useState<number>(0);
+  const [suiBalance, setSuiBalance] = useState<number>(0);
+  const [usdcBalance, setUsdcBalance] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const fetchBalance = async () => {
       if (walletAddress) {
         try {
-          const { suiBalance: balance, usdcBalance } =
+          const { suiBalance, usdcBalance } =
             await getUserBalance(walletAddress);
-          const formatted = Number(balance) / 1_000_000_000;
-          setUserBalance(formatted);
+          const formattedSuiBalance = Number(suiBalance) / 1_000_000_000;
+          const formattedUsdcBalance = Number(usdcBalance) / 1_000_000;
+
+          setSuiBalance(formattedSuiBalance);
+          setUsdcBalance(formattedUsdcBalance);
         } catch (error) {
           console.error("Error fetching balance:", error);
-          setUserBalance(0);
+          setSuiBalance(0);
+          setUsdcBalance(0);
         }
       }
     };
@@ -244,12 +251,16 @@ export default function SinglePayment() {
     const numericAmount = Number.parseFloat(amount);
     if (numericAmount <= 0) return "$0.00 USD";
 
-    const formattedValue = (numericAmount * suiPrice).toLocaleString("en-US", {
+    // Calculate value based on token type
+    const value =
+      formData.tokenType === "USDC"
+        ? numericAmount * 0.99 // USDC conversion
+        : numericAmount * suiPrice; // SUI conversion
+
+    return `$${value.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    });
-
-    return `$${formattedValue} USD`;
+    })} USD`;
   };
 
   const isDateValid = (date?: Date) => {
@@ -367,14 +378,39 @@ export default function SinglePayment() {
       return;
     }
 
+    // Add balance validation based on token type
+    const selectedAmount = Number(formData.amount);
+    const relevantBalance =
+      formData.tokenType === "USDC" ? usdcBalance : suiBalance;
+
+    if (selectedAmount > relevantBalance) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient balance",
+        description: `You need ${formData.amount} ${formData.tokenType.toUpperCase()} but only have ${relevantBalance.toFixed(2)} ${formData.tokenType.toUpperCase()}`,
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      const amount = Math.round(Number.parseFloat(formData.amount) * 1e9);
+      // Convert amount based on token type
+      const amount = Math.round(
+        Number.parseFloat(formData.amount) *
+          (formData.tokenType === "USDC" ? 1e6 : 1e9)
+      ); // Convert to base units (USDC = 1e6, SUI = 1e9)
+
       const recipientAddress =
         recipientInfo?.walletAddress || formData.recipient;
 
-      const result = await sendPayment(recipientAddress, Number(amount));
+      // Send the payment based on token type
+      let result;
+      if (formData.tokenType === "USDC") {
+        result = await sendUSDCPayment(recipientAddress, Number(amount));
+      } else {
+        result = await sendPayment(recipientAddress, Number(amount));
+      }
 
       if (result && scheduleDate) {
         const scheduledDateTime = new Date(scheduleDate);
@@ -387,7 +423,7 @@ export default function SinglePayment() {
           receiver: recipientAddress,
           amount: Number(formData.amount),
           scheduledDate: scheduledDateTime,
-          tokenType: "SUI" as "SUI" | "USDC", //USDC
+          tokenType: formData.tokenType,
         };
         await scheduleTransaction("single", transactionData);
         toast({
@@ -622,12 +658,66 @@ export default function SinglePayment() {
                       ≈ {calculateEquivalentValue(formData.amount)}
                     </p>
                   )}
+                  <div className="flex justify-between items-center mb-2">
+                    <div>
+                      <p className="text-gray-400">Your Balance:</p>
+                      <p
+                        className={`font-medium ${
+                          Number(formData.amount) >
+                          (formData.tokenType === "USDC"
+                            ? usdcBalance
+                            : suiBalance)
+                            ? "text-red-400"
+                            : "text-green-400"
+                        }`}
+                      >
+                        {formData.tokenType === "USDC"
+                          ? usdcBalance.toFixed(2)
+                          : suiBalance.toFixed(2)}{" "}
+                        {formData.tokenType}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-gray-400">Required Amount:</p>
+                      <p className="font-medium">
+                        {formData.amount || "0.00"}{" "}
+                        {formData.tokenType.toUpperCase()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {Number(formData.amount) >
+                    (formData.tokenType === "USDC"
+                      ? usdcBalance
+                      : suiBalance) && (
+                    <div className="bg-red-900/20 p-4 rounded-lg border border-red-900/30 flex gap-3">
+                      <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-red-200">
+                          Insufficient balance. You need{" "}
+                          {(
+                            Number(formData.amount) -
+                            (formData.tokenType === "USDC"
+                              ? usdcBalance
+                              : suiBalance)
+                          ).toFixed(2)}{" "}
+                          more {formData.tokenType.toUpperCase()} to complete
+                          this transaction.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="token" className="text-gray-300">
                     Token
                   </Label>
-                  <Select defaultValue="SUI">
+                  <Select
+                    value={formData.tokenType}
+                    onValueChange={(value) =>
+                      handleChange("tokenType", value as "SUI" | "USDC")
+                    }
+                  >
                     <SelectTrigger
                       id="token"
                       className="mt-1.5 bg-[#061020]/70 border-[#1a2a40] text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -637,7 +727,6 @@ export default function SinglePayment() {
                     <SelectContent className="bg-[#0a1930] border-[#1a2a40] text-white">
                       <SelectItem value="SUI">SUI</SelectItem>
                       <SelectItem value="USDC">USDC</SelectItem>
-                      <SelectItem value="USDT">USDT</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -854,13 +943,19 @@ export default function SinglePayment() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Amount:</span>
                     <div className="text-right">
-                      <div className="text-white">{formData.amount} SUI</div>
+                      <div className="text-white">
+                        {formData.amount} {formData.tokenType}
+                      </div>
                       {formData.amount && isValidAmount(formData.amount) && (
                         <div className="text-xs text-gray-400">
                           ≈ {calculateEquivalentValue(formData.amount)}
                         </div>
                       )}
                     </div>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Token Type:</span>
+                    <span className="text-white">{formData.tokenType}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Schedule Date:</span>
@@ -893,7 +988,8 @@ export default function SinglePayment() {
                     <span className="text-gray-400">Total:</span>
                     <div className="text-right">
                       <div className="text-white">
-                        {Number(formData.amount) + calculateNetworkFee()} SUI
+                        {Number(formData.amount) + calculateNetworkFee()}{" "}
+                        {formData.tokenType}
                       </div>
                       {formData.amount && isValidAmount(formData.amount) && (
                         <div className="text-xs text-gray-400">
@@ -930,7 +1026,9 @@ export default function SinglePayment() {
                       scheduleDate,
                       selectedTime.hours,
                       selectedTime.minutes
-                    )
+                    ) ||
+                    Number(formData.amount) >
+                      (formData.tokenType === "USDC" ? usdcBalance : suiBalance)
                   }
                   className="bg-blue-600 hover:bg-blue-700"
                 >
