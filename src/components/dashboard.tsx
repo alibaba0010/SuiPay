@@ -35,6 +35,7 @@ import {
 } from "@/hooks/useSchedule";
 import { useNetwork } from "@/contexts/network-context";
 import { formatBalance } from "@/utils/helpers";
+import { useScheduleContext } from "@/contexts/schedule-context";
 
 export interface Transaction {
   transactionDigest: string;
@@ -115,6 +116,7 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { setUpcomingCount: setGlobalUpcomingCount } = useScheduleContext();
 
   const refreshTransactions = useCallback(async () => {
     if (!walletAddress) return;
@@ -252,6 +254,7 @@ export default function Dashboard() {
           ].sort((a: Date, b: Date) => a.getTime() - b.getTime());
 
           setUpcomingCount(scheduledDates.length);
+          setGlobalUpcomingCount(scheduledDates.length); // Add this line
           setNextScheduledPayment(scheduledDates[0] || null);
         } finally {
           setIsLoading(false);

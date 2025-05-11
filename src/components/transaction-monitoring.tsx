@@ -834,7 +834,8 @@ export default function TransactionMonitoring() {
                                         : "Payment"}
                                     </div>
                                     <div className="text-gray-300 truncate">
-                                      {totalAmount} {tx.token}
+                                      {totalAmount}{" "}
+                                      {st.transactions[0].tokenType}
                                     </div>
                                   </div>
                                 </div>

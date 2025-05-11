@@ -1245,6 +1245,10 @@ export default function BulkPayment() {
                             ? "bg-blue-600 hover:bg-blue-700 text-white"
                             : "bg-[#061020] border-[#1a2a40] text-gray-300 hover:bg-[#0a1930]"
                         }`}
+                        disabled={
+                          !showManualEntry &&
+                          selectedPayrollData?.tokenType === "USDC"
+                        }
                       >
                         SUI
                       </Button>

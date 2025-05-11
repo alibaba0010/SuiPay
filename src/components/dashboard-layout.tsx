@@ -17,15 +17,16 @@ import {
 } from "@/components/ui/popover";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { navItems } from "@/utils/navItmes";
 import { toast } from "@/components/ui/use-toast";
 
 import type { ReactNode } from "react";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useNavItems } from "@/utils/navItmes";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const navItems = useNavItems();
   const [userInfo, setUserInfo] = useState<{
     username: string;
     email: string;

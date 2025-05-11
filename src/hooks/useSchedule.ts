@@ -20,6 +20,7 @@ export interface BulkTransactionData {
     amount: number;
   }>;
   totalAmount: number;
+  tokenType: "SUI" | "USDC";
   scheduledDate: Date;
 }
 

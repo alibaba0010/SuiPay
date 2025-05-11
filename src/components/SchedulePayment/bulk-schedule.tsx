@@ -46,6 +46,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { shortenAddress } from "@/utils/helpers";
 
 interface Payment {
   id: string;
@@ -1340,7 +1341,7 @@ export default function BulkPayment({
                         </div>
                         <div>
                           <p className="font-medium truncate">
-                            {payment.recipient}
+                            {shortenAddress(payment.recipient, 4, 6)}
                           </p>
                           {(payment.username || payment.email) && (
                             <p className="text-xs text-gray-400">

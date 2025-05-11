@@ -7,6 +7,7 @@ import { WalletProvider } from "@/lib/wallet-context";
 import { NotificationsProvider } from "@/contexts/notifications-context";
 import { RouteChecker } from "@/components/Routes/route-checker";
 import { NetworkProvider } from "@/contexts/network-context";
+import { ScheduleProvider } from "@/contexts/schedule-context";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -28,7 +29,9 @@ export default function RootLayout({
           <WalletProvider>
             <NotificationsProvider>
               <NetworkProvider>
-                <RouteChecker>{children}</RouteChecker>
+                <ScheduleProvider>
+                  <RouteChecker>{children}</RouteChecker>
+                </ScheduleProvider>
               </NetworkProvider>
             </NotificationsProvider>
           </WalletProvider>
