@@ -11,7 +11,7 @@ import {
   User,
   Droplets,
 } from "lucide-react";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +33,8 @@ export function WalletButton() {
     email: string;
   } | null>(null);
   const disconnect = useDisconnectWallet();
-  const { isConnected, walletAddress } = useWalletContext() || {};
+  const { isConnected, walletAddress, handleDisconnectWallet } =
+    useWalletContext() || {};
   const { fetchUserByAddress, userProfile, isLoading } = useUserProfile();
 
   const { currentNetwork } = useNetwork();
@@ -70,14 +71,6 @@ export function WalletButton() {
       setUserData(userProfile);
     }
   }, [userProfile]);
-
-  const handleDisconnect = useCallback(() => {
-    disconnect.mutate();
-    toast({
-      title: "Wallet Disconnected",
-      description: "You've been logged out successfully.",
-    });
-  }, [disconnect]);
 
   const copyAddress = useCallback(() => {
     if (walletAddress) {
@@ -199,7 +192,7 @@ export function WalletButton() {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleDisconnect}>
+        <DropdownMenuItem onClick={handleDisconnectWallet}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Disconnect</span>
         </DropdownMenuItem>

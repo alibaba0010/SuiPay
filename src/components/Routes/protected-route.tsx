@@ -4,7 +4,7 @@ import type React from "react";
 
 import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {

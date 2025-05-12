@@ -43,7 +43,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContract } from "@/hooks/useContract";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { useTransactionStorage } from "@/hooks/useTransactionStorage";
 import { useSuiPrice } from "@/hooks/useSuiPrice";
 import { useRouter } from "next/navigation";

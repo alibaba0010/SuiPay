@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useContract } from "@/hooks/useContract";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { toast } from "@/components/ui/use-toast";
 import {
   Select,

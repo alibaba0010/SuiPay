@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useContract } from "@/hooks/useContract";
-import { useWalletContext } from "@/lib/wallet-context";
 import { isFakeEmail } from "fakefilter";
 import {
   Shield,
@@ -26,11 +25,14 @@ import {
   CheckCircle,
   Check,
   RotateCw,
+  LogOut,
+  AlertCircle,
 } from "lucide-react";
 import { generateVerificationCode } from "@/utils/helpers";
 import { useDrip } from "@/hooks/useDrip";
 import { eventEmitter } from "@/lib/events";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useWalletContext } from "@/contexts/wallet-context";
 
 export default function UserRegistrationDialog() {
   const [open, setOpen] = useState(true);
@@ -44,10 +46,11 @@ export default function UserRegistrationDialog() {
   const [verificationError, setVerificationError] = useState("");
   const [showVerificationInput, setShowVerificationInput] = useState(false);
   const [userBalance, setUserBalance] = useState<number>(0);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
   const [step, setStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { walletAddress } = useWalletContext() || {};
+  const { walletAddress, handleDisconnectWallet } = useWalletContext() || {};
   const { createUser, getUserBalance } = useContract();
   const { checkBalanceAndDrip, isLoading: isChecking } = useDrip();
   const { fetchAllEmails, fetchAllUsername } = useUserProfile();
@@ -218,6 +221,15 @@ export default function UserRegistrationDialog() {
     setVerificationCode("");
   };
 
+  const handleDisconnect = () => {
+    if (showDisconnectConfirm) {
+      handleDisconnectWallet?.();
+      setShowDisconnectConfirm(false);
+    } else {
+      setShowDisconnectConfirm(true);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange} modal={true}>
       <DialogContent
@@ -230,10 +242,21 @@ export default function UserRegistrationDialog() {
 
         <div className="p-6 relative z-10">
           <DialogHeader className="mb-6">
-            <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center justify-between mb-4">
               <div className="bg-blue-600/20 p-3 rounded-full">
                 <Shield className="h-6 w-6 text-blue-400" />
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white hover:bg-red-900/20"
+                onClick={handleDisconnect}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                {showDisconnectConfirm
+                  ? "Confirm Disconnect"
+                  : "Disconnect Wallet"}
+              </Button>
             </div>
             <DialogTitle className="text-white text-xl text-center">
               Complete Your Profile
@@ -243,6 +266,37 @@ export default function UserRegistrationDialog() {
               access Sui Pay.
             </DialogDescription>
           </DialogHeader>
+
+          {showDisconnectConfirm && (
+            <div className="mb-4 p-3 bg-red-900/20 border border-red-900/30 rounded-md">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-red-200">
+                    Are you sure you want to disconnect your wallet? This will
+                    cancel the registration process.
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="bg-red-600 hover:bg-red-700"
+                      onClick={() => handleDisconnectWallet?.()}
+                    >
+                      Yes, Disconnect
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowDisconnectConfirm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             {isSuccess ? (

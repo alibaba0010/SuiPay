@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSchedule } from "@/hooks/useSchedule";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { useContract } from "@/hooks/useContract";
 import { useSuiPrice } from "@/hooks/useSuiPrice";
 import { useRouter } from "next/navigation";

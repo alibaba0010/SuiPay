@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

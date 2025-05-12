@@ -21,7 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 
 import UserRegistrationDialog from "@/components/user-registration-dialog";
 import { useUserProfile } from "@/hooks/useUserProfile";

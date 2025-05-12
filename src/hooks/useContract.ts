@@ -3,7 +3,7 @@ import { useSuiClient, useSuiClientInfiniteQuery } from "@mysten/dapp-kit";
 import { SuiGraphQLClient } from "@mysten/sui/graphql";
 import { useSubmitTransaction } from "./useSubmitTransaction";
 import { MODULE_NAME } from "@/utils/constant";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { useNetworkVariables } from "@/utils/network-config";
 
 export function useContract() {
@@ -104,7 +104,6 @@ export function useContract() {
       coinType:
         "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
     });
-    console.log("userCoins", userCoins);
     const usdcBalance = userCoins.data.reduce(
       (sum, c) => sum + BigInt(c.balance),
       BigInt(0)
@@ -495,7 +494,6 @@ export function useContract() {
     }
   };
   const claimFunds = async (amount: number) => {
-    console.log("Number of tokens to claim:", amount);
     if (!walletAddress) {
       throw new Error("Wallet not connected");
     }
@@ -506,8 +504,6 @@ export function useContract() {
       const tx = new Transaction();
       // Split coins from gas for the exact amount in MIST
       const amountInMist = BigInt(Math.round(amount * 1_000_000_000));
-      console.log("Amount in MIST:", amountInMist);
-      // const [coin] = tx.splitCoins(tx.gas, [tx.pure("u64", amountInMist)]);
 
       tx.setGasBudget(GAS_BUDGET);
 

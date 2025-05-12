@@ -36,7 +36,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useContract } from "@/hooks/useContract";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { usePayroll } from "@/hooks/usePayroll";
 import type { Recipient } from "@/types/payroll";
 import { useUserProfile } from "@/hooks/useUserProfile";

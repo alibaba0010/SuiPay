@@ -4,7 +4,7 @@ import type React from "react";
 
 import { useState, useEffect } from "react";
 import { useTransactionStorage } from "@/hooks/useTransactionStorage";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import {
   useSchedule,
   type SingleTransactionData,

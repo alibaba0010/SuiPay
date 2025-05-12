@@ -10,7 +10,7 @@ import {
   useCallback,
 } from "react";
 import { useContract } from "@/hooks/useContract";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { usePayroll } from "@/hooks/usePayroll";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

@@ -7,7 +7,7 @@ import { Bell, Menu, Search, X, ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useWalletContext } from "@/lib/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { WalletButton } from "@/components/wallet-button";
 import { NetworkSwitcher } from "@/components/network-switcher";
 import {

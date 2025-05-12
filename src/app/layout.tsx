@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SuiProvider } from "@/providers/sui-provider";
 import { Toaster } from "../components/ui/toaster";
-import { WalletProvider } from "@/lib/wallet-context";
+import { WalletProvider } from "@/contexts/wallet-context";
 import { NotificationsProvider } from "@/contexts/notifications-context";
 import { RouteChecker } from "@/components/Routes/route-checker";
 import { NetworkProvider } from "@/contexts/network-context";
