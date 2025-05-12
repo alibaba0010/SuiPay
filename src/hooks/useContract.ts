@@ -352,7 +352,7 @@ export function useContract() {
       const [coin] = tx.splitCoins(tx.gas, [tx.pure("u64", amount)]);
 
       // Set a gas budget for the transaction
-      tx.setGasBudget(GAS_BUDGET); // Increased to 30M gas units
+      tx.setGasBudget(GAS_BUDGET);
 
       // Use init_transfer instead of send_funds_directly
       tx.moveCall({
@@ -495,6 +495,7 @@ export function useContract() {
     }
   };
   const claimFunds = async (amount: number) => {
+    console.log("Number of tokens to claim:", amount);
     if (!walletAddress) {
       throw new Error("Wallet not connected");
     }
@@ -505,14 +506,17 @@ export function useContract() {
       const tx = new Transaction();
       // Split coins from gas for the exact amount in MIST
       const amountInMist = BigInt(Math.round(amount * 1_000_000_000));
-
-      const [coin] = tx.splitCoins(tx.gas, [tx.pure("u64", amountInMist)]);
+      console.log("Amount in MIST:", amountInMist);
+      // const [coin] = tx.splitCoins(tx.gas, [tx.pure("u64", amountInMist)]);
 
       tx.setGasBudget(GAS_BUDGET);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::claim_funds_sui`,
-        arguments: [tx.object(tokenObjectId), coin],
+        arguments: [
+          tx.object(tokenObjectId),
+          tx.pure.u64(Number(amountInMist)),
+        ],
       });
 
       const result = await executeTransaction(tx, {
@@ -828,23 +832,25 @@ export function useContract() {
     try {
       const tx = new Transaction();
       tx.setGasBudget(GAS_BUDGET);
-      const amountInMist = BigInt(Math.round(amount * 1_000_000_000));
+      const amountInMist = BigInt(Math.round(amount * 1_000_000));
 
       const userCoins = await suiClient.getCoins({
         owner: walletAddress,
-        coinType: "0x2::sui::SUI",
+        coinType:
+          "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
       });
+
       if (!userCoins.data.length) {
         throw new Error("No USDC coins available");
       }
 
-      const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
-        tx.pure("u64", amountInMist),
-      ]);
+      // const [coin] = tx.splitCoins(tx.object(userCoins.data[0].coinObjectId), [
+      //   tx.pure("u64", amountInMist),
+      // ]);
 
       tx.moveCall({
         target: `${secureTokenPackageId}::${MODULE_NAME}::claim_funds_usdc`,
-        arguments: [tx.object(tokenObjectId), coin],
+        arguments: [tx.object(tokenObjectId), tx.pure.u64(amountInMist)],
       });
 
       const result = await executeTransaction(tx, {

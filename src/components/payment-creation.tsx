@@ -84,7 +84,8 @@ export default function PaymentCreation() {
     senderEmail: "",
   });
   const router = useRouter();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isDirectProcessing, setIsDirectProcessing] = useState(false);
+  const [isSecureProcessing, setIsSecureProcessing] = useState(false);
   const [suiBalance, setSuiBalance] = useState<number>(0);
   const [usdcBalance, setUsdcBalance] = useState<number>(0);
 
@@ -303,7 +304,7 @@ export default function PaymentCreation() {
       return;
     }
 
-    setIsProcessing(true);
+    setIsSecureProcessing(true);
 
     try {
       // Convert amount to number and handle decimals
@@ -386,7 +387,7 @@ export default function PaymentCreation() {
           description: "Failed to initiate payment",
           variant: "destructive",
         });
-        setIsProcessing(false);
+        setIsSecureProcessing(false);
       }
     } catch (error) {
       console.error("Error submitting payment:", error);
@@ -395,7 +396,7 @@ export default function PaymentCreation() {
         description: "Failed to submit payment. Please try again.",
         variant: "destructive",
       });
-      setIsProcessing(false);
+      setIsSecureProcessing(false);
     }
   };
 
@@ -423,7 +424,7 @@ export default function PaymentCreation() {
       return;
     }
 
-    setIsProcessing(true);
+    setIsDirectProcessing(true);
 
     try {
       // Convert amount to number and handle decimals
@@ -448,7 +449,6 @@ export default function PaymentCreation() {
       } else {
         result = await sendPaymentDirectly(recipientAddress, Number(amount));
       }
-
       if (result) {
         await addTransaction({
           transactionDigest: result.data.transactionId as string,
@@ -482,7 +482,7 @@ export default function PaymentCreation() {
           description: "Failed to send payment",
           variant: "destructive",
         });
-        setIsProcessing(false);
+        setIsDirectProcessing(false);
       }
     } catch (error) {
       console.error("Error sending direct payment:", error);
@@ -491,7 +491,7 @@ export default function PaymentCreation() {
         description: "Failed to send payment. Please try again.",
         variant: "destructive",
       });
-      setIsProcessing(false);
+      setIsDirectProcessing(false);
     }
   };
 
@@ -1040,9 +1040,7 @@ export default function PaymentCreation() {
                       <span className="text-gray-300">Total Amount:</span>
                       <span className="font-bold text-lg">
                         {formData.amount
-                          ? `${Number.parseFloat(formData.amount).toFixed(
-                              2
-                            )} ${formData.tokenType}`
+                          ? `${Number.parseFloat(formData.amount).toFixed(2)} ${formData.tokenType}`
                           : `${calculateNetworkFee()} ${formData.tokenType}`}
                       </span>
                     </div>
@@ -1069,7 +1067,7 @@ export default function PaymentCreation() {
                     variant="blueWhite"
                     onClick={prevStep}
                     className="border-[#1a2a40] hover:bg-[#0a1930]"
-                    disabled={isProcessing}
+                    disabled={isDirectProcessing || isSecureProcessing}
                   >
                     <ChevronLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
@@ -1078,27 +1076,31 @@ export default function PaymentCreation() {
                     onClick={handleDirectPayment}
                     className="bg-blue-600 hover:bg-blue-700 transition-all"
                     disabled={
-                      isProcessing ||
+                      isDirectProcessing ||
+                      isSecureProcessing ||
                       Number(formData.amount) >
                         (formData.tokenType === "USDC"
                           ? usdcBalance
                           : suiBalance)
                     }
                   >
-                    {isProcessing ? "Processing..." : "Send Funds Directly"}
+                    {isDirectProcessing
+                      ? "Processing..."
+                      : "Send Funds Directly"}
                   </Button>
                   <Button
                     onClick={handleSubmit}
                     className="bg-green-600 hover:bg-green-700 transition-all"
                     disabled={
-                      isProcessing ||
+                      isSecureProcessing ||
+                      isDirectProcessing ||
                       Number(formData.amount) >
                         (formData.tokenType === "USDC"
                           ? usdcBalance
                           : suiBalance)
                     }
                   >
-                    {isProcessing ? (
+                    {isSecureProcessing ? (
                       "Processing..."
                     ) : (
                       <>

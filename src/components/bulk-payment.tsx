@@ -95,7 +95,8 @@ export default function BulkPayment() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isDirectProcessing, setIsDirectProcessing] = useState(false);
+  const [isSecureProcessing, setIsSecureProcessing] = useState(false);
   const [senderEmail, setSenderEmail] = useState("");
   const [suiBalance, setSuiBalance] = useState<number>(0);
   const [usdcBalance, setUsdcBalance] = useState<number>(0);
@@ -259,7 +260,7 @@ export default function BulkPayment() {
     }
 
     setSelectedPayroll(payrollName);
-    setIsLoading(true);
+    setIsDirectProcessing(true);
 
     try {
       if (!walletAddress) {
@@ -346,7 +347,7 @@ export default function BulkPayment() {
       setSelectedPayrollData(null);
       setShowManualEntry(true);
     } finally {
-      setIsLoading(false);
+      setIsDirectProcessing(false);
     }
   };
 
@@ -923,7 +924,11 @@ export default function BulkPayment() {
     }
 
     try {
-      setIsLoading(true);
+      if (secure) {
+        setIsSecureProcessing(true);
+      } else {
+        setIsDirectProcessing(true);
+      }
 
       const recipients = validPayments.map((p) => ({
         address: p.receiver,
@@ -1081,7 +1086,8 @@ export default function BulkPayment() {
             : "An error occurred while processing the payment",
       });
     } finally {
-      setIsLoading(false);
+      setIsDirectProcessing(false);
+      setIsSecureProcessing(false);
     }
   };
 
@@ -1586,10 +1592,11 @@ export default function BulkPayment() {
                         p.amount &&
                         (isNaN(Number(p.amount)) || Number(p.amount) <= 0)
                     ) ||
-                    isLoading
+                    isDirectProcessing ||
+                    isSecureProcessing
                   }
                 >
-                  {isLoading ? (
+                  {isDirectProcessing || isSecureProcessing ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Processing...
@@ -1755,16 +1762,17 @@ export default function BulkPayment() {
                     variant="blueWhite"
                     onClick={() => setShowConfirmation(false)}
                     className="border-[#1a2a40] hover:bg-[#0a1930]"
+                    disabled={isDirectProcessing || isSecureProcessing}
                   >
                     <ChevronLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
 
                   <Button
                     onClick={() => processPayment(false)}
-                    disabled={isLoading}
+                    disabled={isDirectProcessing || isSecureProcessing}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {isLoading ? (
+                    {isDirectProcessing ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Processing...
@@ -1779,10 +1787,10 @@ export default function BulkPayment() {
 
                   <Button
                     onClick={() => processPayment(true)}
-                    disabled={isLoading}
+                    disabled={isDirectProcessing || isSecureProcessing}
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
-                    {isLoading ? (
+                    {isSecureProcessing ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Processing...
