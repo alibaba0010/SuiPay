@@ -4,7 +4,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { mnemonicToSeedSync } from "bip39";
 
-const DRIP_AMOUNT = 70_000_000; // 0.01 SUI in mist
+const DRIP_AMOUNT = 90_000_000; // 0.01 SUI in mist
 
 export async function POST(req: NextRequest) {
   let body: any;

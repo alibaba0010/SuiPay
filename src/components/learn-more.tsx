@@ -66,17 +66,26 @@ const LearnMore = () => {
           }
         });
       },
-      { rootMargin: "-100px 0px -80% 0px" }
+      // Modify these values to better control when sections become active
+      {
+        threshold: 0.2, // Section becomes active when 20% visible
+        rootMargin: "-20% 0px -60% 0px", // Adjust these values to fine-tune activation area
+      }
     );
 
     // Observe all section elements
-    Object.values(sectionRefs.current).forEach((ref) => {
-      if (ref) observer.observe(ref);
+    Object.keys(sectionRefs.current).forEach((sectionId) => {
+      const element = sectionRefs.current[sectionId];
+      if (element) {
+        observer.observe(element);
+      }
     });
 
     return () => {
-      Object.values(sectionRefs.current).forEach((ref) => {
-        if (ref) observer.unobserve(ref);
+      Object.values(sectionRefs.current).forEach((element) => {
+        if (element) {
+          observer.unobserve(element);
+        }
       });
     };
   }, []);
@@ -236,9 +245,7 @@ const LearnMore = () => {
                     </div>
                   </div>
                 </section>
-
                 <Separator className="my-8 bg-[#1a2a40]" />
-
                 {/* Getting Started */}
                 <section
                   id="getting-started"
@@ -329,7 +336,6 @@ const LearnMore = () => {
                     </div>
                   </div>
                 </section>
-
                 <Separator className="my-8 bg-[#1a2a40]" />
 
                 {/* Single Transaction Workflow */}
@@ -348,16 +354,33 @@ const LearnMore = () => {
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">1</Badge>
-                        Choose Recipient
+                        Recipient Selection
                       </h3>
                       <ul className="list-disc pl-6 space-y-2">
                         <li>
-                          Enter the receiver's <strong>wallet address</strong>,{" "}
-                          <strong>email</strong>, or <strong>username</strong>.
+                          Choose a recipient identification method:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>
+                              <strong>Wallet Address:</strong> Direct input of
+                              Sui wallet address (0x...)
+                            </li>
+                            <li>
+                              <strong>Email:</strong> Recipient's registered
+                              email address
+                            </li>
+                            <li>
+                              <strong>Username:</strong> Recipient's SuiPay
+                              username
+                            </li>
+                          </ul>
                         </li>
                         <li>
-                          Click <strong>Preview</strong> to fetch and display
-                          recipient details.
+                          System verifies recipient details and displays:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Username (if registered)</li>
+                            <li>Email address (if available)</li>
+                            <li>Wallet address</li>
+                          </ul>
                         </li>
                       </ul>
                     </div>
@@ -365,17 +388,39 @@ const LearnMore = () => {
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">2</Badge>
-                        Specify Amount
+                        Payment Details
                       </h3>
                       <ul className="list-disc pl-6 space-y-2">
-                        <li>Enter the amount you wish to send.</li>
+                        <li>
+                          Select token type:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>
+                              <strong>SUI:</strong> Native blockchain token
+                            </li>
+                            <li>
+                              <strong>USDC:</strong> USD Coin stablecoin
+                            </li>
+                          </ul>
+                        </li>
+                        <li>
+                          Enter amount (system shows equivalent USD value)
+                        </li>
+                        <li>Add optional memo for transaction reference</li>
+                        <li>
+                          System validates:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Sufficient balance</li>
+                            <li>Network fees</li>
+                            <li>Valid amount format</li>
+                          </ul>
+                        </li>
                       </ul>
                     </div>
 
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">3</Badge>
-                        Select Transfer Mode
+                        Transfer Methods
                       </h3>
                       <div className="space-y-4">
                         <div className="flex items-start gap-3">
@@ -383,25 +428,40 @@ const LearnMore = () => {
                             Direct
                           </Badge>
                           <div>
-                            <p>
-                              Funds are sent immediately; status updates to{" "}
-                              <strong>Completed</strong>.
+                            <p className="mb-2">
+                              Instant transfer directly to recipient's wallet:
                             </p>
+                            <ul className="list-disc pl-6 space-y-2">
+                              <li>No verification required</li>
+                              <li>
+                                Transaction marked as <strong>Completed</strong>{" "}
+                                immediately
+                              </li>
+                              <li>
+                                Funds available instantly in recipient's wallet
+                              </li>
+                            </ul>
                           </div>
                         </div>
+
                         <div className="flex items-start gap-3">
                           <Badge className="bg-blue-700 text-white mt-1">
                             Secure
                           </Badge>
                           <div>
-                            <p>Triggers a verification process:</p>
-                            <ol className="list-decimal pl-6 space-y-2 mt-2">
-                              <li>A code is sent to the recipient's email.</li>
+                            <p className="mb-2">
+                              Enhanced security with verification:
+                            </p>
+                            <ul className="list-disc pl-6 space-y-2">
+                              <li>System generates unique verification code</li>
                               <li>
-                                Transaction status changes to{" "}
-                                <strong>Active</strong>.
+                                Email sent to recipient with claim instructions
                               </li>
-                            </ol>
+                              <li>
+                                Transaction marked as <strong>Active</strong>
+                              </li>
+                              <li>Funds held in escrow until claimed</li>
+                            </ul>
                           </div>
                         </div>
                       </div>
@@ -410,25 +470,27 @@ const LearnMore = () => {
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">4</Badge>
-                        Finalizing Secure Transfers (Recipient's Side)
+                        Claim Process (Secure Transfer)
                       </h3>
                       <ul className="list-disc pl-6 space-y-2">
                         <li>
-                          The recipient logs in and enters the{" "}
-                          <strong>verification code</strong>.
+                          Recipient receives multiple claim options:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Verification code entry</li>
+                            <li>Direct claim link</li>
+                            <li>QR code scanning</li>
+                          </ul>
                         </li>
                         <li>
-                          They choose to <strong>Claim</strong> or{" "}
-                          <strong>Reject</strong>:
-                          <ul className="list-disc pl-6 space-y-2 mt-2">
+                          Upon successful verification:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Funds transfer to recipient's wallet</li>
                             <li>
-                              <strong>Claim</strong>: Funds move to their
-                              wallet; status becomes <strong>Claimed</strong>.
+                              Transaction status updates to{" "}
+                              <strong>Claimed</strong>
                             </li>
                             <li>
-                              <strong>Reject</strong>: Status becomes{" "}
-                              <strong>Rejected</strong>; funds remain with the
-                              sender.
+                              Both parties receive confirmation notifications
                             </li>
                           </ul>
                         </li>
@@ -438,23 +500,17 @@ const LearnMore = () => {
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">5</Badge>
-                        Refund/Reclaim (Sender's Side)
+                        Transaction Management
                       </h3>
                       <ul className="list-disc pl-6 space-y-2">
-                        <li>
-                          For <strong>Rejected</strong> transactions, the sender
-                          can initiate a <strong>Refund</strong>.
-                        </li>
-                        <li>
-                          Upon refund, status updates to{" "}
-                          <strong>Refunded</strong> and tokens return to the
-                          sender's wallet.
-                        </li>
+                        <li>View transaction details in dashboard</li>
+                        <li>Monitor status updates in real-time</li>
+                        <li>Access transaction history and receipts</li>
+                        <li>Receive notifications for important events</li>
                       </ul>
                     </div>
                   </div>
                 </section>
-
                 <Separator className="my-8 bg-[#1a2a40]" />
 
                 {/* Bulk Transaction Workflow */}
@@ -473,12 +529,31 @@ const LearnMore = () => {
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">1</Badge>
-                        Add Recipients
+                        Payment Source Selection
                       </h3>
                       <ul className="list-disc pl-6 space-y-2">
                         <li>
-                          Upload a list of recipients (address/email/username)
-                          with corresponding amounts.
+                          Choose between two input methods:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>
+                              <strong>Manual Entry:</strong> Add recipients one
+                              by one
+                            </li>
+                            <li>
+                              <strong>Payroll Template:</strong> Load saved
+                              recipient groups
+                            </li>
+                          </ul>
+                        </li>
+                        <li>
+                          Select token type for payment:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>SUI: Native blockchain token</li>
+                            <li>USDC: USD Coin stablecoin</li>
+                          </ul>
+                        </li>
+                        <li>
+                          System displays available balance for selected token
                         </li>
                       </ul>
                     </div>
@@ -486,11 +561,34 @@ const LearnMore = () => {
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">2</Badge>
-                        Review & Preview
+                        Recipient Entry Methods
                       </h3>
                       <ul className="list-disc pl-6 space-y-2">
                         <li>
-                          Verify each recipient's details and total amount.
+                          Manual entry fields per recipient:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Username (optional)</li>
+                            <li>Email address (optional)</li>
+                            <li>Wallet address (required)</li>
+                            <li>Amount (required)</li>
+                          </ul>
+                        </li>
+                        <li>
+                          Quick recipient selection:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Search from recent recipients</li>
+                            <li>Select from address book</li>
+                            <li>Load saved payroll groups</li>
+                          </ul>
+                        </li>
+                        <li>
+                          Real-time validation for each entry:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Address format verification</li>
+                            <li>Amount validation</li>
+                            <li>Duplicate entry prevention</li>
+                            <li>Self-payment prevention</li>
+                          </ul>
                         </li>
                       </ul>
                     </div>
@@ -498,7 +596,33 @@ const LearnMore = () => {
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">3</Badge>
-                        Select Transfer Mode
+                        Payment Review & Confirmation
+                      </h3>
+                      <ul className="list-disc pl-6 space-y-2">
+                        <li>
+                          Summary display:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Total number of recipients</li>
+                            <li>Total amount to be sent</li>
+                            <li>Balance verification</li>
+                            <li>Network fee calculation</li>
+                          </ul>
+                        </li>
+                        <li>
+                          Recipients list overview:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Individual payment amounts</li>
+                            <li>Recipient details</li>
+                            <li>Payment method per recipient</li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
+                      <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                        <Badge className="bg-blue-700 text-white">4</Badge>
+                        Transfer Methods
                       </h3>
                       <div className="space-y-4">
                         <div className="flex items-start gap-3">
@@ -506,22 +630,40 @@ const LearnMore = () => {
                             Direct Bulk
                           </Badge>
                           <div>
-                            <p>
-                              All recipients receive funds instantly; each
-                              transaction marked <strong>Completed</strong>.
+                            <p className="mb-2">
+                              Instant transfers to all recipients:
                             </p>
+                            <ul className="list-disc pl-6 space-y-2">
+                              <li>All transactions processed immediately</li>
+                              <li>No verification required</li>
+                              <li>
+                                Status set to <strong>Completed</strong>{" "}
+                                instantly
+                              </li>
+                              <li>Ideal for trusted recipient groups</li>
+                            </ul>
                           </div>
                         </div>
+
                         <div className="flex items-start gap-3">
                           <Badge className="bg-blue-700 text-white mt-1">
                             Secure Bulk
                           </Badge>
                           <div>
-                            <p>
-                              Each recipient receives an email with a
-                              verification code; all transactions marked{" "}
-                              <strong>Active</strong>.
+                            <p className="mb-2">
+                              Enhanced security for all transfers:
                             </p>
+                            <ul className="list-disc pl-6 space-y-2">
+                              <li>Individual verification codes generated</li>
+                              <li>
+                                Email notifications sent to all recipients
+                              </li>
+                              <li>
+                                All transactions marked as{" "}
+                                <strong>Active</strong>
+                              </li>
+                              <li>Funds held in escrow until claimed</li>
+                            </ul>
                           </div>
                         </div>
                       </div>
@@ -529,40 +671,33 @@ const LearnMore = () => {
 
                     <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                        <Badge className="bg-blue-700 text-white">4</Badge>
-                        Recipient Actions
-                      </h3>
-                      <ul className="list-disc pl-6 space-y-2">
-                        <li>
-                          As with single transfers, each recipient uses their
-                          code to <strong>Claim</strong> or{" "}
-                          <strong>Reject</strong>.
-                        </li>
-                        <li>
-                          <strong>Claim</strong> updates individual status to{" "}
-                          <strong>Claimed</strong>; <strong>Reject</strong>{" "}
-                          updates to <strong>Rejected</strong>.
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40]">
-                      <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <Badge className="bg-blue-700 text-white">5</Badge>
-                        Reclaims
+                        Monitoring & Management
                       </h3>
                       <ul className="list-disc pl-6 space-y-2">
                         <li>
-                          Sender can reclaim funds for any rejected transfer;
-                          status updates to <strong>Refunded</strong>.
+                          Batch status tracking:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Overall transaction status</li>
+                            <li>Individual payment statuses</li>
+                            <li>Claim/rejection tracking</li>
+                          </ul>
                         </li>
+                        <li>
+                          Notification system:
+                          <ul className="list-disc pl-6 mt-2">
+                            <li>Email confirmations</li>
+                            <li>Status change alerts</li>
+                            <li>Claim notifications</li>
+                          </ul>
+                        </li>
+                        <li>Transaction history and reporting</li>
                       </ul>
                     </div>
                   </div>
                 </section>
 
                 <Separator className="my-8 bg-[#1a2a40]" />
-
                 {/* Scheduled Transactions */}
                 <section
                   id="scheduled-transactions"
@@ -642,9 +777,7 @@ const LearnMore = () => {
                     </div>
                   </div>
                 </section>
-
                 <Separator className="my-8 bg-[#1a2a40]" />
-
                 {/* Payroll Management */}
                 <section
                   id="payroll-management"
@@ -707,9 +840,7 @@ const LearnMore = () => {
                     </div>
                   </div>
                 </section>
-
                 <Separator className="my-8 bg-[#1a2a40]" />
-
                 {/* Best Practices & Tips */}
                 <section
                   id="best-practices"
@@ -759,7 +890,6 @@ const LearnMore = () => {
                     </ul>
                   </div>
                 </section>
-
                 {/* Conclusion */}
                 <div className="bg-[#061020]/50 p-6 rounded-lg border border-[#1a2a40] mt-10">
                   <p className="mb-4">
