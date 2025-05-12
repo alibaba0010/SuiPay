@@ -52,6 +52,8 @@ Secure Token Transfer is a Next.js–based dashboard and API suite that provides
 
 - **User System:** Registration with username/email linked to wallet addresses
 - **Types:** Direct transfers, escrow payments, bulk transactions, and scheduled payments
+- **Multi-Token Support:** Native SUI and USDC token transfers
+- **Sponsored Transactions:** Gas-free operations for better user experience
 - **Escrow Features:** Email verification, claim/reject options, refund capabilities
 - **Payroll Tools:** Contact management, lookup functionality, batch processing
 - **Notifications:** Transaction alerts and status updates
@@ -70,7 +72,15 @@ Secure Token Transfer is a Next.js–based dashboard and API suite that provides
 
 ### Transaction Management
 
-- **Direct Transfers**: Send tokens directly to recipient wallets
+- **Direct Transfers**: Send SUI and USDC tokens directly to recipient wallets
+- **Multi-Token Support**:
+  - Native SUI token transfers
+  - USDC stablecoin integration
+  - Automatic token balance tracking
+  - Token swap options during transfers
+- **Sponsored Transactions**:
+  - Gas-free operations for new users
+  - Sponsored transaction limits and policies
 - **Escrow Payments**: Send to contract with verification requirements
 - **Bulk Transactions**: Send to multiple recipients simultaneously
 - **Scheduled Payments**: Set future date/time for transaction activation
@@ -80,7 +90,7 @@ Secure Token Transfer is a Next.js–based dashboard and API suite that provides
 - Email verification codes sent to recipients
 - Claim/reject options for recipients
 - Refund capability for senders
-- Verification code sharing through dashboard
+- Verification code sharing through sender's preference
 
 ### Payroll Management
 
@@ -102,6 +112,8 @@ Secure Token Transfer is a Next.js–based dashboard and API suite that provides
 
 - **Blockchain**: Sui Network
 - **Smart Contracts**: Sui Move language
+- **Token Standards**: SUI native, USDC on Sui
+- **Transaction Sponsorship**: Sui sponsored transaction framework
 - **Frontend**: Next.js
 - **Backend API**: Next.js API routes
 - **Database**: MongoDB
@@ -246,6 +258,7 @@ Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 ## 🔮 Future Roadmap
 
 - ➕ On-chain analytics integrations (The Graph, Dune)
+- 💰 Additional token support (BTC, ETH bridges)
 - 🤖 Automated compliance & KYC modules
 - 📱 Mobile-optimized UI & React Native companion app
 - 🪙 Support for additional token standards (ERC-1155, BEP-721)

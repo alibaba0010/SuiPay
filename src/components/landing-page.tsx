@@ -12,10 +12,8 @@ import {
   Shield,
   Zap,
   Wallet,
-  CreditCard,
   BarChart4,
   Coins,
-  Banknote,
   Receipt,
   Users,
   Sparkles,
@@ -284,16 +282,16 @@ export function LandingPage() {
                   "Seamlessly connect with popular Sui wallets for easy access to your funds.",
               },
               {
-                icon: <CreditCard className="h-10 w-10 text-blue-500" />,
-                title: "Virtual Cards",
+                icon: <Coins className="h-10 w-10 text-blue-500" />,
+                title: "Multi Coin Support",
                 description:
-                  "Create virtual payment cards linked to your Sui wallet for online purchases.",
+                  "Support for multiple cryptocurrencies including USDC and native SUI transactions.",
               },
               {
-                icon: <Banknote className="h-10 w-10 text-blue-500" />,
-                title: "Automated Payroll",
+                icon: <Receipt className="h-10 w-10 text-blue-500" />,
+                title: "Sponsored Transactions",
                 description:
-                  "Set up recurring payments and automate your payroll process with ease.",
+                  "Let third parties pay for your gas fees, making transactions more accessible for all users.",
               },
               {
                 icon: <BarChart4 className="h-10 w-10 text-blue-500" />,
