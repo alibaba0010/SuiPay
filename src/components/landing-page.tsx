@@ -41,6 +41,7 @@ export function LandingPage() {
 
     try {
       if (!userProfile && !isLoading) {
+        setIsCheckingUser(true);
         fetchUserByAddress(walletAddress);
       }
       if (!userProfile) {
@@ -118,6 +119,14 @@ export function LandingPage() {
             <div className="flex items-center gap-2 text-sm text-gray-300">
               <Users className="h-4 w-4 text-green-500" />
               <span>Group Payments</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <Coins className="h-4 w-4 text-green-500" />
+              <span>Multi Coin Support</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <Zap className="h-4 w-4 text-green-500" />
+              <span>Sponsored Transactions</span>
             </div>
           </div>
         </div>
@@ -393,7 +402,7 @@ export function LandingPage() {
               <span>Sui Pay</span>
             </div>
             <div className="text-sm text-gray-400">
-              © 2023 Sui Pay. All rights reserved.
+              © 2025 Sui Pay. All rights reserved.
             </div>
           </div>
         </div>
