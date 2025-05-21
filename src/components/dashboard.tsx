@@ -7,6 +7,8 @@ import {
   Clock,
   ExternalLink,
   RotateCw,
+  Camera,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -120,6 +122,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { setUpcomingCount: setGlobalUpcomingCount } = useScheduleContext();
+  const [scanningQR, setScanningQR] = useState(false);
 
   const [escrowUSDCAmount, setEscrowUSDCAmount] = useState(0);
   const [totalUSDCSent, setTotalUSDCSent] = useState(0);
@@ -619,14 +622,8 @@ export default function Dashboard() {
                         <div>
                           <div className="font-medium text-white">
                             {transaction.type === "received"
-                              ? `From: ${
-                                  userNames[transaction.sender] ||
-                                  shortenAddress(transaction.sender)
-                                }`
-                              : `To: ${
-                                  userNames[transaction.receiver] ||
-                                  shortenAddress(transaction.receiver)
-                                }`}
+                              ? `From: ${userNames[transaction.sender] || shortenAddress(transaction.sender)}`
+                              : `To: ${userNames[transaction.receiver] || shortenAddress(transaction.receiver)}`}
                           </div>
                           <div className="text-sm text-gray-400">
                             {transaction.amount} {transaction.token}
@@ -648,24 +645,36 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           {transaction.type === "received" &&
                             transaction.receiver === walletAddress && (
-                              <Button
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleClaim(transaction);
-                                }}
-                              >
-                                Claim with Code
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="bg-blue-600 hover:bg-blue-700 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleClaim(transaction);
+                                  }}
+                                >
+                                  Claim with Code
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="border-[#1a2a40] hover:bg-[#0a1930]/80 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setScanningQR(true);
+                                  }}
+                                >
+                                  Scan QR Code
+                                </Button>
+                              </>
                             )}
                           {transaction.type === "sent" &&
                             transaction.sender === walletAddress &&
-                            transaction.status === "active" &&
-                            transaction.verificationCode && (
+                            transaction.status === "active" && (
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="ghost"
                                 className="border-[#1a2a40] hover:bg-[#0a1930]/80 transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -757,15 +766,6 @@ export default function Dashboard() {
                       fgColor="#000000"
                     />
                   )}
-                  <p className="text-black text-center mt-2 font-medium">
-                    Verification Code
-                  </p>
-                  <p className="text-black text-center text-sm">
-                    {transactions.find((tx) => tx.id === showQRcode)
-                      ?.plainCode ||
-                      transactions.find((tx) => tx.id === showQRcode)
-                        ?.verificationCode}
-                  </p>
                 </div>
               </motion.div>
             )}
@@ -801,6 +801,41 @@ export default function Dashboard() {
         refundFunds={refundFunds}
         onSuccess={refreshTransactions}
       />
+      {scanningQR && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-[#0a1930] border border-[#1a2a40] rounded-lg p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Scan QR Code</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setScanningQR(false)}
+                className="h-8 w-8 text-gray-400 hover:text-blue-400"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="bg-black/20 rounded-lg p-4 flex items-center justify-center h-64">
+              {/* Here you would integrate your QR code scanner library */}
+              <div className="text-center">
+                <Camera className="h-12 w-12 text-gray-500 mx-auto mb-3" />
+                <p className="text-gray-400">Camera access required</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Position the QR code within the frame to scan
+                </p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700 transition-colors"
+                onClick={() => setScanningQR(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -77,12 +77,15 @@ Secure Token Transfer is a Next.js–based dashboard and API suite that provides
   - Native SUI token transfers
   - USDC stablecoin integration
   - Automatic token balance tracking
-  - Token swap options during transfers
+  - Real-time price feeds for token conversion
+  - Gas fee optimization for different tokens
+  - Token allowance management
 - **Sponsored Transactions**:
-  - Gas-free operations for new users
+  - Gas-fee support for new users(wallet address)
   - Sponsored transaction limits and policies
+  - Initial SUI token allocation for new wallets
 - **Escrow Payments**: Send to contract with verification requirements
-- **Bulk Transactions**: Send to multiple recipients simultaneously
+- **Bulk Transactions**: Send to multiple recipients at once
 - **Scheduled Payments**: Set future date/time for transaction activation
 
 ### Escrow System
