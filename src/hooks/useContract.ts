@@ -42,7 +42,6 @@ export function useContract() {
     if (!address) {
       throw new Error("Address is required");
     }
-    console.log("In getting user by address");
     const tx = new Transaction();
     tx.moveCall({
       target: `${secureTokenPackageId}::${MODULE_NAME}::get_user_by_address`,

@@ -9,6 +9,7 @@ import {
   RotateCw,
   Camera,
   X,
+  Download,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,10 @@ import { formatBalance, shortenAddress } from "@/utils/helpers";
 import { useScheduleContext } from "@/contexts/schedule-context";
 import { QRCodeSVG } from "qrcode.react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { createRoot } from "react-dom/client";
+import { Scanner } from "@yudiel/react-qr-scanner";
+import { useToast } from "@/components/ui/use-toast";
+
 export interface Transaction {
   transactionDigest: string;
   sender: string;
@@ -79,9 +84,9 @@ const getNextPaymentText = (date: Date): string => {
 export default function Dashboard() {
   const { currentNetwork } = useNetwork();
   const { walletAddress } = useWalletContext() || {};
+  const { toast } = useToast();
   const {
     getUserBalance,
-    getUserByAddress,
     claimFunds,
     refundFunds,
     refundUSDCFunds,
@@ -391,6 +396,122 @@ export default function Dashboard() {
     refreshTransactions();
   };
 
+  // Updated downloadQRCode function
+  const downloadQRCode = (transaction: Transaction) => {
+    try {
+      const qrCodeValue = JSON.stringify({
+        status: transaction.status,
+        amount: transaction.amount,
+        receiver: transaction.receiver,
+        token: transaction.token,
+        code: transaction.plainCode || transaction.verificationCode,
+      });
+
+      // Create a temporary container for the QR code
+      const tempContainer = document.createElement("div");
+      tempContainer.style.position = "absolute";
+      tempContainer.style.left = "-9999px"; // Hide it off-screen
+      document.body.appendChild(tempContainer);
+
+      // Define the desired download size
+      const downloadSize = 1024;
+
+      // Render QR code into the temporary container
+      const root = createRoot(tempContainer);
+      root.render(
+        <QRCodeSVG
+          value={qrCodeValue}
+          size={downloadSize}
+          level="H"
+          bgColor="#ffffff"
+          fgColor="#000000"
+        />
+      );
+
+      // Get the rendered SVG element after a slight delay to ensure rendering
+      // Note: A more robust solution would use a callback or promise.
+      setTimeout(() => {
+        const renderedSVG = tempContainer.querySelector("svg");
+        if (!renderedSVG) {
+          console.error("Failed to render QR code for download.");
+          // Clean up even if rendering fails
+          root.unmount();
+          document.body.removeChild(tempContainer);
+          return;
+        }
+
+        // Create a canvas element
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          console.error("Could not get canvas context");
+          root.unmount();
+          document.body.removeChild(tempContainer);
+          return;
+        }
+
+        // Set canvas size to the desired download size
+        canvas.width = downloadSize;
+        canvas.height = downloadSize;
+
+        // Create an image from the SVG
+        const svgData = new XMLSerializer().serializeToString(renderedSVG);
+        const img = new Image();
+
+        // Add a CORS-safe data URL prefix
+        const svgDataUrl = "data:image/svg+xml;base64," + btoa(svgData);
+
+        img.onload = () => {
+          // Draw the image on canvas
+          ctx.fillStyle = "white"; // Ensure white background for transparency issues
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // Draw the SVG image onto the canvas, scaling it to the download size
+          ctx.drawImage(img, 0, 0, downloadSize, downloadSize);
+
+          // Convert canvas to blob
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                console.error("Could not create blob from canvas");
+                // Clean up
+                root.unmount();
+                document.body.removeChild(tempContainer);
+                return;
+              }
+
+              // Create download link
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.download = `payment-qr-${transaction.id}.png`;
+              link.href = url;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+
+              // Clean up
+              root.unmount();
+              document.body.removeChild(tempContainer);
+            },
+            "image/png",
+            1.0 // Specify quality for PNG (1.0 is best)
+          );
+        };
+
+        // Handle potential image loading errors
+        img.onerror = (error) => {
+          console.error("Error loading SVG image to canvas:", error);
+          // Clean up
+          root.unmount();
+          document.body.removeChild(tempContainer);
+        };
+
+        img.src = svgDataUrl;
+      }, 50); // Add a small delay to allow rendering
+    } catch (error) {
+      console.error("Error downloading QR code:", error);
+    }
+  };
   if (isLoading) {
     return (
       <div className="w-full h-[80vh] flex items-center justify-center">
@@ -743,28 +864,72 @@ export default function Dashboard() {
                 transition={{ duration: 0.3 }}
                 className="mt-4 flex justify-center p-4"
               >
-                <div className="bg-white p-6 rounded-lg shadow-xl">
+                <div className="bg-[#0a1930] p-6 rounded-lg shadow-xl flex flex-col items-center">
                   {transactions.find((tx) => tx.id === showQRcode) && (
-                    <QRCodeSVG
-                      value={JSON.stringify({
-                        status: transactions.find((tx) => tx.id === showQRcode)
-                          ?.status,
-                        amount: transactions.find((tx) => tx.id === showQRcode)
-                          ?.amount,
-                        receiver: transactions.find(
-                          (tx) => tx.id === showQRcode
-                        )?.receiver,
-                        code:
-                          transactions.find((tx) => tx.id === showQRcode)
-                            ?.plainCode ||
-                          transactions.find((tx) => tx.id === showQRcode)
-                            ?.verificationCode,
-                      })}
-                      size={200}
-                      level={"H"}
-                      bgColor="#ffffff"
-                      fgColor="#000000"
-                    />
+                    <>
+                      <div className="bg-white p-4 rounded-lg">
+                        <QRCodeSVG
+                          value={JSON.stringify({
+                            status: transactions.find(
+                              (tx) => tx.id === showQRcode
+                            )?.status,
+                            amount: transactions.find(
+                              (tx) => tx.id === showQRcode
+                            )?.amount,
+                            receiver: transactions.find(
+                              (tx) => tx.id === showQRcode
+                            )?.receiver,
+                            code:
+                              transactions.find((tx) => tx.id === showQRcode)
+                                ?.plainCode ||
+                              transactions.find((tx) => tx.id === showQRcode)
+                                ?.verificationCode,
+                          })}
+                          size={200}
+                          level={"H"}
+                          bgColor="#ffffff"
+                          fgColor="#000000"
+                          data-transaction-id={showQRcode}
+                        />
+                      </div>
+                      <div className="mt-4 text-center space-y-2">
+                        <p className="text-sm text-gray-300">
+                          Amount:{" "}
+                          {
+                            transactions.find((tx) => tx.id === showQRcode)
+                              ?.amount
+                          }{" "}
+                          {
+                            transactions.find((tx) => tx.id === showQRcode)
+                              ?.token
+                          }
+                        </p>
+                        <p className="text-sm text-gray-300">
+                          To:{" "}
+                          {userNames[
+                            transactions.find((tx) => tx.id === showQRcode)
+                              ?.receiver || ""
+                          ] ||
+                            shortenAddress(
+                              transactions.find((tx) => tx.id === showQRcode)
+                                ?.receiver || ""
+                            )}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-4 text-blue-400 hover:text-blue-300"
+                        onClick={() =>
+                          downloadQRCode(
+                            transactions.find((tx) => tx.id === showQRcode)!
+                          )
+                        }
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download QR Code
+                      </Button>
+                    </>
                   )}
                 </div>
               </motion.div>
@@ -816,14 +981,101 @@ export default function Dashboard() {
               </Button>
             </div>
             <div className="bg-black/20 rounded-lg p-4 flex items-center justify-center h-64">
-              {/* Here you would integrate your QR code scanner library */}
-              <div className="text-center">
-                <Camera className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-                <p className="text-gray-400">Camera access required</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Position the QR code within the frame to scan
-                </p>
-              </div>
+              <Scanner
+                onScan={(result) => {
+                  if (result && result[0] && result[0].rawValue) {
+                    try {
+                      const scannedData = JSON.parse(result[0].rawValue);
+                      console.log("Scanned Data:", scannedData);
+
+                      if (
+                        scannedData.receiver === walletAddress &&
+                        scannedData.status === "active"
+                      ) {
+                        // Find the corresponding transaction
+                        const transactionToClaim = transactions.find(
+                          (tx) =>
+                            tx.receiver === walletAddress &&
+                            tx.status === "active" &&
+                            tx.amount === scannedData.amount &&
+                            tx.token === scannedData.token &&
+                            (tx.verificationCode === scannedData.code ||
+                              tx.plainCode === scannedData.code)
+                        );
+
+                        if (transactionToClaim) {
+                          console.log(
+                            "Transaction found, claiming:",
+                            transactionToClaim
+                          );
+                          setScanningQR(false); // Close scanner
+                          handleClaim(transactionToClaim); // Trigger claim process
+                        } else {
+                          console.warn(
+                            "No matching active transaction found for scanned data."
+                          );
+                          toast({
+                            title: "Scan Failed",
+                            description:
+                              "No matching active transaction found.",
+                            variant: "destructive",
+                          });
+                        }
+                      } else if (scannedData.receiver !== walletAddress) {
+                        console.warn(
+                          "Scanned QR code is not for your address."
+                        );
+                        toast({
+                          title: "Scan Failed",
+                          description:
+                            "This QR code is not for your wallet address.",
+                          variant: "destructive",
+                        });
+                      } else if (scannedData.status !== "active") {
+                        console.warn(
+                          "Scanned QR code is not for an active transaction."
+                        );
+                        toast({
+                          title: "Scan Failed",
+                          description:
+                            "This QR code is not for an active transaction.",
+                          variant: "destructive",
+                        });
+                      }
+                    } catch (error) {
+                      console.error(
+                        "Error parsing scanned QR code data:",
+                        error
+                      );
+                      toast({
+                        title: "Scan Failed",
+                        description: "Invalid QR code data format.",
+                        variant: "destructive",
+                      });
+                    }
+                  } else {
+                    console.warn("No QR code data detected.");
+                    toast({
+                      title: "Scan Failed",
+                      description: "No QR code data detected.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                onError={(error) => {
+                  console.error("QR Scanner Error:", error);
+                  toast({
+                    title: "Scanner Error",
+                    description: "Could not access camera or scan QR code.",
+                    variant: "destructive",
+                  });
+                  setScanningQR(false); // Close scanner on error
+                }}
+                constraints={{
+                  facingMode: "environment", // Use rear camera
+                }}
+                // Add styles or components as needed
+              />
             </div>
             <div className="mt-4">
               <Button
