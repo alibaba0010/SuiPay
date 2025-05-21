@@ -4,6 +4,7 @@ import axios from "axios";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useContract } from "./useContract";
 import { useUserProfile } from "./useUserProfile";
+import { shortenAddress } from "@/utils/helpers";
 export interface Transaction {
   transactionDigest: string;
   sender: string;
@@ -240,8 +241,7 @@ export function useTransaction() {
     // Get sender info
     const senderInfo = await fetchUserByAddress(transaction.sender);
     const senderDisplay =
-      senderInfo?.username ||
-      transaction.sender.slice(0, 6) + "..." + transaction.sender.slice(-4);
+      senderInfo?.username || shortenAddress(transaction.sender);
 
     // Add notification for receiver
     addNotification({
@@ -265,8 +265,7 @@ export function useTransaction() {
     // Get sender info
     const senderInfo = await fetchUserByAddress(transaction.sender);
     const senderDisplay =
-      senderInfo?.username ||
-      transaction.sender.slice(0, 6) + "..." + transaction.sender.slice(-4);
+      senderInfo?.username || shortenAddress(transaction.sender);
 
     // Add notifications for each recipient
     transaction.recipients.forEach((recipient: any) => {

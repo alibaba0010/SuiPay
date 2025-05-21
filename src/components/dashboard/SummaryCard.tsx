@@ -68,14 +68,14 @@ export function SummaryCard({
           >
             {value}
           </motion.div>
-          <motion.p
+          <motion.div
             className="text-xs text-gray-300 truncate"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.5 }}
           >
             {description}
-          </motion.p>
+          </motion.div>
         </CardContent>
       </Card>
     </motion.div>

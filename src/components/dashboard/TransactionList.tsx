@@ -7,6 +7,9 @@ import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import { StatusBadge } from "./StatusBadge";
 import { StatusIcon } from "./StatusIcon";
 import { exportTransactions } from "@/lib/utils/export";
+import { useContract } from "@/hooks/useContract";
+import { useState, useEffect } from "react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNetwork } from "@/contexts/network-context";
+import { shortenAddress } from "@/utils/helpers";
 
 interface UpdatedDigestMapping {
   address: string;
@@ -42,10 +46,17 @@ interface TransactionListProps {
   transactions: Transaction[];
   walletAddress: string;
   showAll: boolean;
+  userNames: Record<string, string>; // Add this new prop
   onShowAllChange: (show: boolean) => void;
   onTransactionClick: (transaction: Transaction) => void;
   onRefresh: () => Promise<void>;
   isRefreshing: boolean;
+}
+
+interface User {
+  username: string;
+  email: string;
+  walletAddress: string;
 }
 
 const getTransactionDigest = (transaction: Transaction) => {
@@ -78,12 +89,15 @@ export function TransactionList({
   transactions,
   walletAddress,
   showAll,
+  userNames, // Add this new prop
   onShowAllChange,
   onTransactionClick,
   onRefresh,
   isRefreshing,
 }: TransactionListProps) {
   const { currentNetwork } = useNetwork();
+  const { getUserByAddress } = useContract();
+
   if (transactions.length === 0) {
     return (
       <div className="text-center py-8">
@@ -179,8 +193,14 @@ export function TransactionList({
               </p>
               <p className="text-sm text-gray-400">
                 {transaction.receiver === walletAddress
-                  ? `Received from ${transaction.sender.slice(0, 6)}...${transaction.sender.slice(-4)}`
-                  : `Sent to ${transaction.receiver.slice(0, 6)}...${transaction.receiver.slice(-4)}`}
+                  ? `Received from ${
+                      userNames[transaction.sender] ||
+                      shortenAddress(transaction.sender)
+                    }`
+                  : `Sent to ${
+                      userNames[transaction.receiver] ||
+                      shortenAddress(transaction.receiver)
+                    }`}
               </p>
             </div>
           </div>

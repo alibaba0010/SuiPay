@@ -42,7 +42,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useTransactionStorage } from "@/hooks/useTransactionStorage";
-import { formatBalance, generateVerificationCode } from "@/utils/helpers";
+import {
+  formatBalance,
+  generateVerificationCode,
+  shortenAddress,
+} from "@/utils/helpers";
 import { sendBulkPaymentEmails } from "@/hooks/UseEmail";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/contexts/notifications-context";
@@ -977,8 +981,7 @@ export default function BulkPayment() {
       if (result?.success) {
         const senderInfo = await fetchUserByAddress(walletAddress);
         const senderDisplay =
-          senderInfo?.username ||
-          walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4);
+          senderInfo?.username || shortenAddress(walletAddress);
 
         // Store transaction with individual verification codes
         await addBulkTransaction({

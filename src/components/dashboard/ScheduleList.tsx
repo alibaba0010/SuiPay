@@ -150,7 +150,7 @@ export function ScheduleList({
           console.error(`Error fetching username for ${address}:`, error);
           return {
             address,
-            username: address.slice(0, 6) + "..." + address.slice(-4),
+            username: shortenAddress(address),
           };
         }
       });

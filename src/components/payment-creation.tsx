@@ -47,7 +47,11 @@ import { useWalletContext } from "@/contexts/wallet-context";
 import { useTransactionStorage } from "@/hooks/useTransactionStorage";
 import { useSuiPrice } from "@/hooks/useSuiPrice";
 import { useRouter } from "next/navigation";
-import { formatBalance, generateVerificationCode } from "@/utils/helpers";
+import {
+  formatBalance,
+  generateVerificationCode,
+  shortenAddress,
+} from "@/utils/helpers";
 import { sendPaymentEmail } from "@/hooks/UseEmail";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -459,9 +463,7 @@ export default function PaymentCreation() {
           tokenType: formData.tokenType as "SUI" | "USDC",
         });
         // Add notification for completed payment
-        const senderDisplay =
-          senderUsername ||
-          walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4);
+        const senderDisplay = senderUsername || shortenAddress(walletAddress);
         addNotification({
           type: "payment",
           title: "Payment Received",

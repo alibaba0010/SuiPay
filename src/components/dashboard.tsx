@@ -8,7 +8,6 @@ import {
   ExternalLink,
   RotateCw,
 } from "lucide-react";
-import type React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,14 +28,15 @@ import { TransactionList } from "./dashboard/TransactionList";
 import { ScheduleList } from "./dashboard/ScheduleList";
 
 import {
-  BulkTransactionData,
-  SingleTransactionData,
+  type BulkTransactionData,
+  type SingleTransactionData,
   useSchedule,
 } from "@/hooks/useSchedule";
 import { useNetwork } from "@/contexts/network-context";
-import { formatBalance } from "@/utils/helpers";
+import { formatBalance, shortenAddress } from "@/utils/helpers";
 import { useScheduleContext } from "@/contexts/schedule-context";
-
+import { QRCodeSVG } from "qrcode.react";
+import { useUserProfile } from "@/hooks/useUserProfile";
 export interface Transaction {
   transactionDigest: string;
   sender: string;
@@ -79,6 +79,7 @@ export default function Dashboard() {
   const { walletAddress } = useWalletContext() || {};
   const {
     getUserBalance,
+    getUserByAddress,
     claimFunds,
     refundFunds,
     refundUSDCFunds,
@@ -93,6 +94,7 @@ export default function Dashboard() {
     updateTransactionStatus,
   } = useTransactionStorage();
   const { getSchedules } = useSchedule();
+  const { fetchUserByAddress } = useUserProfile();
   const [suiBalance, setSuiBalance] = useState<string>("0");
   const [usdcBalance, setUsdcBalance] = useState<string>("0");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -114,6 +116,7 @@ export default function Dashboard() {
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showQRcode, setShowQRcode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { setUpcomingCount: setGlobalUpcomingCount } = useScheduleContext();
@@ -121,6 +124,7 @@ export default function Dashboard() {
   const [escrowUSDCAmount, setEscrowUSDCAmount] = useState(0);
   const [totalUSDCSent, setTotalUSDCSent] = useState(0);
   const [totalUSDCReceived, setTotalUSDCReceived] = useState(0);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   const refreshTransactions = useCallback(async () => {
     if (!walletAddress) return;
@@ -306,6 +310,31 @@ export default function Dashboard() {
     fetchBalance();
   }, [walletAddress, getUserBalance]);
 
+  useEffect(() => {
+    const loadUserNames = async () => {
+      const addresses = new Set(
+        transactions.flatMap((t) => [t.sender, t.receiver])
+      );
+
+      const userPromises = Array.from(addresses).map(async (address) => {
+        const user = await fetchUserByAddress(address);
+        return { address, username: user?.username };
+      });
+
+      const users = await Promise.all(userPromises);
+      const userMap: Record<string, string> = {};
+      users.forEach(({ address, username }) => {
+        if (username) {
+          userMap[address] = username;
+        }
+      });
+
+      setUserNames(userMap);
+    };
+
+    loadUserNames();
+  }, [transactions]);
+
   const usdValue = (Number(suiBalance) * suiPrice).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -355,6 +384,7 @@ export default function Dashboard() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedTransaction(null);
+    setShowQRcode(null);
     refreshTransactions();
   };
 
@@ -531,6 +561,7 @@ export default function Dashboard() {
                 transactions={transactions}
                 walletAddress={walletAddress || ""}
                 showAll={showAllTransactions}
+                userNames={userNames} // Add this new prop
                 onShowAllChange={setShowAllTransactions}
                 onTransactionClick={handleTransactionClick}
                 onRefresh={refreshTransactions}
@@ -588,8 +619,14 @@ export default function Dashboard() {
                         <div>
                           <div className="font-medium text-white">
                             {transaction.type === "received"
-                              ? `From: ${transaction.sender.slice(0, 6)}...${transaction.sender.slice(-4)}`
-                              : `To: ${transaction.receiver.slice(0, 6)}...${transaction.receiver.slice(-4)}`}
+                              ? `From: ${
+                                  userNames[transaction.sender] ||
+                                  shortenAddress(transaction.sender)
+                                }`
+                              : `To: ${
+                                  userNames[transaction.receiver] ||
+                                  shortenAddress(transaction.receiver)
+                                }`}
                           </div>
                           <div className="text-sm text-gray-400">
                             {transaction.amount} {transaction.token}
@@ -619,7 +656,29 @@ export default function Dashboard() {
                                   handleClaim(transaction);
                                 }}
                               >
-                                Claim
+                                Claim with Code
+                              </Button>
+                            )}
+                          {transaction.type === "sent" &&
+                            transaction.sender === walletAddress &&
+                            transaction.status === "active" &&
+                            transaction.verificationCode && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-[#1a2a40] hover:bg-[#0a1930]/80 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowQRcode(
+                                    showQRcode === transaction.id
+                                      ? null
+                                      : transaction.id || null
+                                  );
+                                }}
+                              >
+                                {showQRcode === transaction.id
+                                  ? "Hide QR Code"
+                                  : "Show QR Code"}
                               </Button>
                             )}
                           <Button
@@ -668,6 +727,48 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+            {showQRcode && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 flex justify-center p-4"
+              >
+                <div className="bg-white p-6 rounded-lg shadow-xl">
+                  {transactions.find((tx) => tx.id === showQRcode) && (
+                    <QRCodeSVG
+                      value={JSON.stringify({
+                        status: transactions.find((tx) => tx.id === showQRcode)
+                          ?.status,
+                        amount: transactions.find((tx) => tx.id === showQRcode)
+                          ?.amount,
+                        receiver: transactions.find(
+                          (tx) => tx.id === showQRcode
+                        )?.receiver,
+                        code:
+                          transactions.find((tx) => tx.id === showQRcode)
+                            ?.plainCode ||
+                          transactions.find((tx) => tx.id === showQRcode)
+                            ?.verificationCode,
+                      })}
+                      size={200}
+                      level={"H"}
+                      bgColor="#ffffff"
+                      fgColor="#000000"
+                    />
+                  )}
+                  <p className="text-black text-center mt-2 font-medium">
+                    Verification Code
+                  </p>
+                  <p className="text-black text-center text-sm">
+                    {transactions.find((tx) => tx.id === showQRcode)
+                      ?.plainCode ||
+                      transactions.find((tx) => tx.id === showQRcode)
+                        ?.verificationCode}
+                  </p>
+                </div>
+              </motion.div>
+            )}
           </TabsContent>
 
           <TabsContent
